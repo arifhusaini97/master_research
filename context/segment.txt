@@ -1,0 +1,351 @@
+force which enhances the velocity of the fluid, hence increasing the heat transfer between the
+surface and the fluid, leads to a lower temperature.
+Meanwhile in Figure 8 and Figure 9, the effect of the magnetic parameter, M , to local skin
+1
+
+friction coefficient, C f Re x 2 and Nusselt number, Nu Re x
+
+1
+
+2
+
+are displayed respectively. It is
+
+revealed that both the local skin friction coefficient and Nusselt number increases with the
+increase in magnetic parameter. Since the magnetic field increases the velocity of the fluid, the
+heat transfers ability becomes better, hence higher Nusselt number for higher value of magnetic
+parameter. From the figures, it can be observed that the solution exists only when the
+
+  c  1.6446 for M  0 . When the value of the magnetic parameter increases, the range
+for the  also increases such that when M  0.1 (   c  1.9694 ) and M  0.2
+(   c  2.5073 ).
+
+0
+First Solution
+Second Solution
+
+-0.2
+
+-0.4
+
+-0.6
+
+-0.8
+
+-1
+
+-1.2
+
+0
+
+5
+
+10
+
+15
+
+Figure 6. Influence of M on f '( ) .
+34
+
+20
+
+25
+
+First Solution
+Second Solution
+
+0.07
+0.06
+10-3
+
+0.05
+3.55
+
+0.04
+3.5
+
+0.03
+3.45
+
+0.02
+
+0.083
+
+0.0835
+
+0.084
+
+0.0845
+
+0.01
+0
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+Figure 7. Influence of M on  ( ) .
+
+2
+
+First solution
+Second Solution
+
+1.5
+1
+0.5
+0
+-0.5
+-1
+-1.5
+-2
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+Figure 8. Local skin friction coefficient with various values of M .
+35
+
+1
+
+Figure 9. Local Nusselt number with various values of M .
+
+4.3
+
+Effects of Slip Velocity and Critical Shear Rate Parameters on Velocity Problem
+
+and Temperature Problem, Local Skin Friction Coefficient, and Nusselt Number
+
+The impact of different values of velocity slip ( L1 ), critical shear rate parameters ( L2 ) with the
+default value sets to 1  2  3  0.1, M  0.2, 1  0.5, and E1  0.8 . on velocity profile,
+f '( ) can be seen in Figure 10. The velocity of the ternary nanofluid fluid for the first solution
+
+increases with the increase in both slip velocity and critical shear rate parameters while the
+velocity profile for the second solution decreases. When velocity slip parameter is applied
+( L1  0.5 ), there is less friction between the surface and the fluid due to the slip effect while
+the viscosity becomes weaker due to the presence of the critical shear rate parameter
+(
+
+L2  0.5, 0.6 )
+
+which
+
+resulting
+
+in
+
+higher
+
+fluid
+
+velocity.
+
+The
+
+graph
+
+for
+
+L1  L2  0.5 and L1  0.5, L2  0.6 is closer than with the absence of velocity slip and critical
+
+shear rate parameters since there is only a slight difference in L2 . Meanwhile, Figure 11
+36
+
+illustrates that as both slip velocity and critical shear rate parameters increases, the temperature
+profile,  ( ) , decreases for first and second solution. When both of these parameters increase,
+the velocity of the fluid increases, enhancing the heat transfer between the fluid and the surface,
+hence, it has lower temperature profile.
+Figure 12 shows the effect of slip velocity and critical shear rate parameters on the local skin
+1
+
+friction coefficient, C f Re x 2 . When the value of the parameters increases, the local skin
+friction for the first solution decreases when   0 while the second solution increases. From
+the figure, the local skin friction coefficient is slightly higher when there are no slip velocity
+and critical shear rate parameters being applied compared to when the values are
+L1  L2  0.5 and L1  0.5, L2  0.6 . On the other hand, Figure 13 reveals that the Nusselt
+
+number, Nu Re x
+
+1
+
+2
+
+, for both solution rises with increasing slip velocity and critical shear rate
+
+parameters. It is observed dual solution exist during shrinking sheet until c , before the
+separation boundary layer happens.
+
+0
+First Solution
+Second Solution
+
+-0.2
+-0.1
+
+-0.4
+
+-0.15
+
+-0.6
+
+-0.2
+-0.25
+
+-0.8
+
+1
+
+2
+
+3
+
+4
+
+-1
+
+0
+
+5
+
+10
+
+15
+
+20
+
+Figure 10. Influence of L1 and L2 on f '( ) .
+
+37
+
+First Solution
+Second Solution
+
+0.07
+0.06
+2.18
+
+0.05
+
+10-3
+
+2.16
+2.14
+
+0.04
+
+2.12
+
+0.03
+
+2.1
+0.09
+
+0.02
+
+0.091
+
+0.092
+
+0.01
+0
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+Figure 11. Influence of L1 and L2 on  ( ) .
+
+First solution
+Second Solution
+
+2
+1.5
+1
+0.5
+0
+-0.5
+-1
+-1.5
+-2
+-2.5
+-3
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+1
+
+Figure 12. Local skin friction coefficient with various values of L1 and L2 .
+
+38
+
+75.4
+
+First solution
+Second Solution
+
+75.3
+75.2
+75.1
+75
+74.9
+74.8
+74.7
+74.6
+74.5
+74.4
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+

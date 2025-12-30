@@ -1,0 +1,517 @@
+--- PAGE 1 ---
+See discussions, st ats, and author pr ofiles f or this public ation at : https://www .researchgate.ne t/public ation/322854826
+ON THE TRANSFORMATION OF NONNEWTONIAN BOUNDARY VALUE
+PROBLEM TO INITIAL VALUE PROBLEM
+Article  · Februar y 2018
+CITATIONS
+2READS
+260
+1 author:
+Hema Champ aklal Sur ati
+Sarvajanik Colle ge of Engineering and T echnolog y
+13 PUBLICA TIONS    24 CITATIONS    
+SEE PROFILE
+All c ontent f ollo wing this p age was uplo aded b y Hema Champ aklal Sur ati on 15 F ebruar y 2018.
+The user has r equest ed enhanc ement of the do wnlo aded file.
+--- PAGE 2 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 180 
+ ON THE TRANSFORMATIO N OF NON -
+NEWTONIAN BOUNDARY V ALUE PROBLEM  
+TO INITIAL VALUE PRO BLEM  
+Hema C. Surati1  , Hemangini Shukla2 and M.G. Timol3 
+1Department of Mathematics , Sarvajanik College of Engineering & Technology1 Surat -395001, Gujarat, India , Government 
+Engineering College  
+Godhra2-389001, Veer Narmad South Gujarat University  
+Magdalla Road, Surat3-395007  
+hema.surati@scet.ac.in1, hsshukla94@gmail.com2, mgtimol @gmail.com3 
+ 
+ 
+Abstract:  A generalized dimensional  analysis method is applied to develop the similarity solution of the steady two dimensional 
+boundary layer  flow of non Newtonian fluid Sisko  fluid model with appropriate boundary condition. The non -linear boundary value 
+problem (BVP) is transformed into initial value problem (IVP). Taylor series method  is used to solve IVP  .It is observed that velocity 
+of set increases with similarity independent variable.  
+Keywords:  Dimensional analysis,  Group theory, boundary layer, non -Newtonian, Sisko fluid, laminar flow, Stress, Strain, Similarity 
+solutions  
+Nomenclature:  
+u, v - Velocity components in X and Y directions, respectively u  
+U - Main stream velocities in X direction  
+
+- Stream function  
+a ,b - Sisko fluid parameters  
+n- Flow behaviour indices  
+
+- Similarity variable  
+f- Similarity functions  
+A, A 1, A2, A3, A4,            - Real constants  
+I. INTRODUCTION  
+The term fluid includes both gases and liquids. Fluid mechanics deals with the motion of fluids and the 
+forces exerted on solid bodies in contact with the fluids.  From last two decades, the study of boundary 
+layer flows of non -Newtonian fluids has attracted researcher, Scientists, Mat hematicians and Engineers 
+because of its real world applications. A fluid is characterized by the behavior  of its viscosity. Non -
+Newtonian behavior  is due to very long chains, coils or a platelet type of molecular structure of the fluids. 
+Examples of non -Newtonian fluids are the mud encountered in drilling oil wells, the paper pulp 
+suspensions of paper industry, the molten rayon, molten plastics, high polymers, pastes, thick suspensions, 
+emulsions, oils and lubricating greases, substances of food industries , slurries, blood etc. Because of 
+different properties of non -Newtonian fluids one cannot propose single model so in literature there are 
+various model of non -Newtonian fluids available proposed by scientists working in this area.  Observation 
+of literature  survey is that most of flow analysis is done for Newtonian fluids and limited analysis done for 
+non-Newtonian fluids almost up to power law fluid.Power law fluid model for non -Newtonian fluid have 
+been analyzed  by Pakedemirli (1994), Djukic ( 1974 ), Kapur  (1963), Naet al. (1967), Nagler  (2014), Patel 
+et al (2011,2012 ). Different fluid models are discussed by Manisha et al. (2013)  
+In this paper we have analyzed  the Sisko fluid model proposed by Sisko ( 1958) which is combination of 
+viscous and power -law flui d model. Several fluids exist in nature which satisfies the property of shear 
+thinning and thickening. Lubricating greases, cement slurries, polymeric suspensions are industrial Sisko 
+fluids. In spite of wide industrial applications of Sisko fluid limited work has done in this area. Lie group 
+--- PAGE 3 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 181 
+ analysis of Sisko  fluid has been done by Gozde and Pakdemirli (2012). Olanrewaju and his co -worker 
+(2013) have obtained numerical solution for unsteady free convective flow of Sisko  fluid with radioactive  
+heat transfer . Laminar boundary layer flow of Sisko fluid is recently analyzed  using one parameter scaling 
+group of transformations by Manisha  Patel (2015).  
+So, in this paper our aim is to demonstrate that Generalized dimensional analysis method is  used in 
+finding similarity solution of non -Newtonian fluids for Sisko fluid model.  Helmholtz (1973) first 
+discovered the concept of ‘Mathematical Similarity’ through the dimensional analysis approach. In the 
+same time, the Russian mathematician S. Lie (1975) h as presented famous Lie algorithm based on the 
+continuous group transformations for the same kind of simplification of partial differential equation.  
+Moran (1971) has worked on the generalized Dimensional Analysis method.  
+Further numerical solution is obta ined by transferring BVP to IVP and then applying Taylor’s 
+series method. This method of transformation was introduced by Topfer (1957) . Further the method was 
+extended to solve many similar type of equation by Klamkin (1962) .by applying linear group of 
+transformation, the method was seen to be applicable to Blasius solution with suction or blowing by T.Y. 
+Na (1970) .Hema et al has applied a linear group of transformation to convert BVP to IVP in two 
+dimensional jet flow.  
+II. GOVERNING EQUATIONS  
+The Problem of two dimensional laminar boundary layer flow of Sisko  fluid past a semi infinite flat 
+plate is examined. The governing continuity and momentum equations of laminar boundary layer flow of 
+Sisko  fluid are as follows:  
+.  
+  +  
+                      (1) 
+   
+  +   
+      
+    
+          
+      
+   
+           (2) 
+Subject to the boundary conditions:  
+              
+                     (3) 
+Where a and b are the  Sisko fluid parameter  
+We define stream  function  ψ(x, y),  to reduce one dependent va riable which  satisfies eq uation  (1). 
+   ψ
+        ψ
+             (4) 
+Equation ( 2) is transformed in following equation  with associated boundary conditions.  
+ ψ
+    ψ
+      ψ
+    ψ
+       
+    
+          ψ
+       
+   ψ
+          (5) 
+Subject to the boundary conditions;  
+     ψ
+     ψ
+     
+     ψ
+              (6) 
+III. GENERLIZED DIMENSION AL ANALYSIS  
+Consider the following group of transformation:  
+--- PAGE 4 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 182 
+                                          
+ψ    ψ                                             
+                                                                (7) 
+Where     i=1, 2, 3, 4  are group parameters . 
+Equations (5) and (6)   remain  invariant under group of transformations defined by G in eq uation (7) 
+ ψ 
+     ψ 
+        ψ 
+     ψ 
+         
+     
+           ψ 
+        
+   ψ 
+                      (8) 
+                 ψ
+    ψ
+                  ψ
+    ψ
+    
+             
+        
+                ψ
+       
+         ψ
+            (9) 
+Equations (5) and (6)   remains invariant under group of transformations defined by G in eq uation (7) 
+provided     are interrelated in following form.  
+                    and                                       (10) 
+               and                               (11)  
+ 
+Two parameter group of transformations  
+                                                
+ψ        ψ                                                    
+                                                                                       (12) 
+Now according to pi  theorem stated by Moran et el (1972), (given insection -2) the rank of dimensional 
+matrix associated with independent and physical variables BC and physical  variables C is required to be 
+determined.  
+The associated dimensional matrix will be  
+BC:  
+ 
+  
+ 
+   where matrix C corresponds last row.  
+Rank of matrix BC is two and of matrix C is 1 . (r>s) So by th eorem  3 stated by Moran and Murshek  
+n+m+p -r =2 absolute invariant exists in the form of  
+  ψ           and                                 (13) 
+Solving following  system of equations.  
+  
+       
+       
+      
+                     (14) 
+  
+       
+       
+      
+                     (15) 
+We obtained exponents        
+       
+       
+      
+ . 
+So we have similarity transformations  
+      
+    
+                      (16) 
+      ψ   
+   
+                     (17) 
+It is to be observed that similarity solutions for all such Non -Newtonian fluids exist only for the flow past 
+90° wedge only.  
+Take     
+                        (18) 
+--- PAGE 5 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 183 
+ Using chain  rule of differentiation for  transformations given in equation s (16), (17), (18) equations  (5) -(6) 
+are transformed  into ODE in the following form  
+                                                                                  (19) 
+With  boundary conditions                                         (20) 
+IV. REDUCTION TO AN INIT IAL VALUE PROBLEM  
+A. CASE(I) : NEWTONIAN FLUID MODE L 
+ 
+Put            
+  
+Equation (19) is transformed as  
+                                                (21) 
+To transform equation ( 21) with boundary condition into initial value problem a one parameter linear 
+group of transformation is defined as under  
+                                       (22)      
+Where A is parameter of transformation and           are constants which we have to determined  
+Substituting the transformation in equation (21 ) 
+                                                             
+                                
+Now under this transformation equation (21 ) must remain invariant it is possible only if  
+                   
+                                (23) 
+To get missing initial condition,  we put  
+             
+so                           
+The boundary condition is independent of          and A if   
+                             (24) 
+Which then gives                
+From  (23) and (24 )       
+        
+  
+Finally,  the value of A can be computed from the boundary condition at the second point, i.e.,         
+               
+  
+          
+    
+        
+                      (25) 
+Thus boundary value problem is converted into initial value problem  
+                                                     (26) 
+With  initial conditions  
+                                  again  
+                                  
+          
+  
+Differentiating (26 ) with respect to    
+                                              (27) 
+        =0 
+--- PAGE 6 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 184 
+ Differentiating (27 ) with respect to    
+                                                          (28) 
+          
+Differentiating (28 ) with respect to    
+                   f                                          
+          
+  
+ Using Taylor’s series expansion and ignoring higher order  terms we get , 
+         
+     
+                      (29) 
+             
+                           (30) 
+Table 1  
+    
+             
+0 0 0 
+0.5 0.1180  0.4583  
+1 0.444  0.8333  
+1.5 0.9375  1.125  
+2 1.555  1.3333  
+2.5 2.257  1.4583  
+3 3 1.5 
+Thus      
+        
+        = 0.544  
+        
+               and         
+            
+and               
+The calculated values of    , f (    and f’ (   are given in Table 2.  
+Table 2  
+ 
+   
+ 0 0 0 
+0.6124  0.09629  0.3054  
+1.2249  0.3623  0.55531  
+1.8373  0.765  0.7947  
+2.4498  1.2688  0.8883  
+3.06225  1.8417  0.97183  
+3.6747  2.448  0.9996  
+ 
+B. CASE(II ):  POWER  LAW FLUID MODEL  
+Put               
+Equation (19 ) is transformed as  
+
+--- PAGE 7 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 185 
+                                  
+                         (29) 
+With  boundary conditions  
+                           
+Using the same method as above discussed in case (i) to convert boundary value problem into initial value 
+problem we get  
+                                       
+                          (30) 
+With  initial conditions  
+                                              (31) 
+And      
+         
+  
+Differe ntiating (30 ) successively and neglecting higher order derivatives we  get following equation using 
+Taylor’s series expansion  
+          
+     
+                     (32) 
+              
+                     (33) 
+Table 3  
+    
+             
+0 0 0 
+0.1 0.0048  0.095  
+0.2 0.0186  0.18 
+0.3 0.0405  0.255  
+0.4 0.0693  0.32 
+0.5 0.1042  0.375  
+0.6 0.144  0.42 
+0.7 0.1878  0.455  
+0.8 0.2346  0.48 
+0.9 0.2835  0.495  
+1 0.333  0.5 
+Thus      
+        
+        = 3.563  
+        
+               and         
+             
+and               
+The calculated values of    , f (    and f’     are given in Table 4.  
+Table 4  
+
+     
+0 0 0 
+0.0561  0.005382  0.1899  
+0.1122  0.02087  0.3599  
+0.1683  0.0454  0.5099  
+
+--- PAGE 8 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 186 
+ 0.2245  0.07778  0.6399  
+0.2806  0.1169  0.7499  
+0.3367  0.1616  0.8399  
+0.3928  0.21078  0.9099  
+0.44896  0.2633  0.9599  
+0.50508  0.3182  0.9899  
+0.5612  0.3737  0.999  
+ 
+C. CASE(II I): SISKO  FLUID MODEL  
+Put    
+     
+     
+  
+Equation (20 ) is transformed as  
+                       
+                     
+         (34) 
+With  boundary conditions                                         (35) 
+Using the same method to convert boundary value problem into initial value problem we get  
+                            
+                         
+                                                (36) 
+With  initial conditions  
+                             (37) 
+And       
+        
+  
+Differentiating ( 36) successively and neglecting higher orde r derivatives we  get following Taylor’s  series 
+expansion  
+          
+     
+                      (37) 
+              
+                    (38) 
+Table 5  
+    
+             
+0 0 0 
+0.1 0.005  0.09802  
+0.2 0.01947  0.19208  
+0.3 0.0432  0.2818  
+0.4 0.0757  0.36382  
+0.5 0.11675  0.4505  
+0.6 0.1657  0.52872  
+0.7 0.222  0.60298  
+0.8 0.2862  0.67328  
+0.9 0.35688  0.73962  
+1 0.434  0.802  
+--- PAGE 9 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 187 
+ Thus      
+          
+        = 0.7155  
+        
+                and         
+             
+and               
+The calculated values of    , f (    and f’ (   are given in Table 6.  
+ 
+Table 6  
+ 
+     
+0 0 0 
+0.1118  0.004  0.0784  
+0.2236  0.0174  0.1536  
+0.3354  0.0386  0.2257  
+0.4472  0.0677  0.2946  
+0.559  0.1044  0.36035  
+0.6078  0.1482  0.4229  
+0.7826  0.1985  0.48232  
+0.8944  0.2559  0.53855  
+1.006  0.3191  0.5916  
+1.11805  0.3875  0.64151  
+1.67707  0.80496  0.83989  
+2.2361  1.31655  0.96627  
+2.7951  1.8633  0.9998  
+ 
+Figure 1: Velocity profile for Newtonian fluid  
+
+--- PAGE 10 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 188 
+  
+Figure 2: Velocity profile for Power law fluid  
+ 
+Figure 3: Velocity profile for Sisko fluid  
+V. CONCLUSION  
+Similarity solutions for steady two dimensional boundary layer equations for Non -Newtonian Sisko 
+fluids are derived. The generalized Dimensional Analysis method with two parameter group 
+transformation is used to derive similarity solutions. The similarity  equations that are highly non -linear 
+ordinary differential equations with boundary conditions are transferred to initial value problem(IVP). The 
+numerical solution of resulting IVP is obtained by simple Taylor’s series method. The advantage of 
+present ana lysis is that highly non -linear BVP can be solved by simple numerical technique like Taylor’s 
+series method  after converting it into IVP. This method c an be applied to the solutions of equations where 
+certain parameters appear either in differential equati ons or in boundary conditions.  
+REFERENCES  
+[1] Pakdemirli, M. (1994). Similarity Analysis of Boundary Layer Equations of a Class of non -Newtonian Fluids,  Int. J. Non -Linear 
+Mechanics, Vol. 29, No. 2, pp. 187 -196. 
+[2] Djukic, Dj.S. (1973). On the use of Crocco’s equ ation for the flow of power -law fluids in a transverse magnetic field , AIChE 
+Journal, vol 19, pp 1159 -1163.  
+[3] Kapur, J.N. and Srivastava, R. C. (1963). Similar Solutions of the Boundary Layer Equations for Power Law Fluids , Kurze 
+Mitteilungen -Brief Reports -Communications bre'ves, Vol. 14, page -388. 
+
+--- PAGE 11 ---
+International Journal of Engineering Science Invention Research & Development; Vol. III, Issue III, September 2016  
+www.ijesird.com, e -ISSN: 2349 -6185  
+ 
+Hema C. Surati  , Hemangini Shukla   and M.G. Timol   ijesird, Vol. III, Issue III, September 2016/ 189 
+ [4] Na, T.Y., and Hansen, A. (1967). Radial flow of viscous non -Newtonian fluids between disks , Int. J. Non -Linear Mech. Vol. 2 pp. 
+261-273. 
+[5] Nagler, J. (2014). Laminar boundary layer model for power -law fluids with non linear viscosity , WSEAS Transactions on Fluid 
+Mechanics, Vol. 9, page 19.  
+[6] Manisha Patel and M Timol. (2011). Magneto hydrodynamic orthogonal stagnation point flow of a power -law fluid toward a 
+stretching surface  American Journal of Computational Mathematic s, volume 1(issue 2), 129 -133. 
+[7] Patel, M., Patel, R. and Timol, M.G. (2012). Group Invariance for non -Linear PDE’s : 3 -D MHD stagnation point flow of non -
+Newtonian power -law fluids , International Journal of Mathematics and Scientific Computing (IJMSC), vol 2, no. 2, 72 -80. 
+[8] Patel, M., Surati, H., Chanda, M.S. and Timol, M.G. (2013). Models of Various Non -Newtonian Fluids , International E -journal of 
+education and mathematics (IEJEM), 2(4), 21 -36. 
+[9] Sisko, A.W., The flow of lubricating greases , Ind. Eng. Chem. Res., 50 (1958), pp. 1789 -1792  
+[10] Sarı, G., Pakdemirli, M., Hayat, T., and Aksoy, Y.  2012 . Boundary Layer Equations and Lie Group Analysis of a Sisko 
+Fluid , Journal of Applied Mathematics.  
+[11]  Olanrewaju, P.O., Adigun, A.A., Fenwa, O.D., Oke, A. and Ajala, Fu nmi (2013). Unsteady Free Convective Flow of 
+Sisko Fluid with Radioactive Heat Transfer past a Flat Plate Moving Through a Binary Mixture,  Thermal Energy and Power 
+Engineering, Vol. 2, Issue 4, 147 -155. 
+[12] Manisha Patel  , Jayshri Patel and M.G.Timol  (2015)   Laminar Boundary Layer Flow of Sisko Fluid,  Applications and 
+Applied Mathematics(AAM), Vol. 10, Issue 2, pp. 909 -918 
+[13] Helmholtz, H. (1973). Uber discontinuierliche flussigkeitsbewegungen . Montasber Berlin, AKADA , 215.  
+[14] Lie, S. (1975). Math. Annalen ,Vol. (8) . Math. Annalen, pp 220. 
+[15] M.J.Moran, (1971) A Generalization of Dimension al Analysis , J.Fraklin. Inst.29, 423-432. 
+[16] Goldstein, S., (1957) Modern Developments in Fluid Dynamics , Vol. 1, Oxford University Press, London,  pp. 135 -136. 
+[17] Klamlrin, M. 8  (1962) ., "On the Transformation of a Class of Boundary Value Problems into Initial Value Problems for 
+Ordinary Differential Equations ," SIAM Review, Vol. 4,  pp. 43 -47. 
+[18] Na T.Y.  (1970) “An Initial Value Method for the Solution of a Class of Nonlinear Equations in Fluid  Mechanics ”  ASME 
+J. Basic Eng., pp, 92.  
+[19] Hema Surati, M. G. Timol (2004) Initial value method for two dimensional jet of incompressible viscous fluids,  Ultra 
+science J. Vol.16(2)M pp119 -126. 
+[20]  Moran M. J. and Marshek K. M. (1972)  Some matrix aspects of generalized dimensional analysis . J. Eng. Math. 6 ,  
+pp,291.  
+ 
+View publication stats

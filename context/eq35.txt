@@ -1,0 +1,131 @@
+ Rearrange the equation (25)
+
+  thnf            1                    a3                           thnf B 2  thnf        thnf
+   f
+        f '''
+                f  0 E0
+                          f '''
+                                 2  f  0 E0 v f
+                                             3     f ''2
+                                                          f '''              
+                                                                     a thnf   f 
+                                                                                        f '
+                                                                                                f
+                                                                                                      f '2  ff ''  0,
+                           thnf                               thnf B 2  thnf        thnf                             (26)
+                                 1  E11 f ''   f ''' 
+                                                  2
+                                                                                  f '       ( f '2  ff '')  0.
+                                                    
+                            f                                 a thnf   f             f
+
+
+                    1                         a3
+Where 1                    and E1                  are the Eyring-Powell fluid parameters.
+                 f  0 E0                 2 E0 2 v f
+
+Rearrange equation (26)
+
+                thnf                                B2            
+                      1  E11 f ''2   f '''  thnf  f  f ' thnf ( f '2  ff '')  0,
+                                                                  
+                 f                                  a f   f        f
+                        thnf                                                                                            (27)
+                              1  E11 f ''2   f '''   thnf Mf ' thnf ( f '2  ff '')  0
+                                                    
+                         f                                  f         f
+
+                 f 2
+Where M              B is the magnetic parameter.
+                 a f
+
+
+
+
+3.5      Transformation of energy equation
+In transforming energy equation (5), we rearrange and differentiate the equation of
+temperature with the respect of x and y respectively
+
+                                             T  Tw  T      T ,                                                   (28)
+                                           T                                                                               (29)
+                                               0,
+                                           x
+                                           T              a
+                                               Tw  T      ',                                                          (30)
+                                           y              vf
+                                           2T             a
+                                                Tw  T   ''.
+                                          y 2
+                                                           vf                                                               (31)
+
+
+
+
+Substitution of equations (16), (28) – (31) into equation (5) gives
+
+
+
+
+                                                                 24
+                                                  a         kthnf                             a
+                  av f f  Tw  T                 '                            Tw  T   '' .
+                                                  vf      C p          thnf
+                                                                                                  vf
+                                                                                                        (32)
+
+
+
+
+By dividing equation (32) by a  Tw  T  and rearranging the terms, we have
+
+                                                             kthnf                          a
+                              af Tw  T   '                                 Tw  T   '',
+                                                          C       p thnf
+                                                                                             vf
+                                                             kthnf                1
+                                               f '                                 '',
+                                                          C       p thnf
+                                                                                  vf
+                        kthnf         1
+                                          '' f  '  0.
+                     C    p thnf
+                                      vf                                                                (33)
+
+
+               f C p  f
+ where Pr                   . Rearranging equation (33) gives
+                  kf
+
+                                                         kthnf          f
+                                                                            '' f  '  0,
+                                                       C 
+                                                           p thnf
+                                                                        f
+
+                                          kthnf        f k f C p  f
+                                                                        '' f  '  0,
+                                       C  p thnf
+                                                       f k f C p 
+                                                                              f
+
+
+                                 kthnf k f             kf         
+                                                                    '' f  '  0,
+                         C p thnf   C p  f   f  C p  f 
+                                        kthnf k f           1 
+                                                                      '' f  '  0
+                                  C p    C p   Pr 
+                                              thnf               f
+                                                                                                        (34)
+
+
+
+
+3.6    Transformation of boundary condition equation
+ When y  0 ,
+
+
+
+
+                                                                 25
+

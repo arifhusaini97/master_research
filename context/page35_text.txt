@@ -1,0 +1,127 @@
+Rearrange the equation (25)
+thnf
+ thnf B 2  thnf 
+thnf
+1
+a3
+2
+f '''
+f '''
+f
+''
+f
+'''
+
+
+ f '
+
+
+ f '2  ff ''  0,
+3
+f
+ f  0 E0
+2  f  0 E0 v f
+a thnf   f 
+f
+ thnf
+
+ thnf B 2  thnf 
+thnf
+2
+ 1  E11 f ''   f ''' 
+( f '2  ff '')  0.
+
+
+ f '
+
+a thnf   f 
+f
+ f
+
+
+Where 1 
+
+1
+
+ f  0 E0
+
+and E1 
+
+(26)
+
+a3
+are the Eyring-Powell fluid parameters.
+2 E0 2 v f
+
+Rearrange equation (26)
+ thnf
+
+ B2   
+
+ 1  E11 f ''2   f '''  thnf  f  f ' thnf ( f '2  ff '')  0,
+
+
+
+
+a f   f 
+f
+ f
+
+ thnf
+
+
+
+ 1  E11 f ''2   f '''   thnf Mf ' thnf ( f '2  ff '')  0
+
+
+f
+f
+ f
+
+
+Where M 
+
+3.5
+
+(27)
+
+f 2
+B is the magnetic parameter.
+a f
+
+Transformation of energy equation
+
+In transforming energy equation (5), we rearrange and differentiate the equation of
+temperature with the respect of x and y respectively
+T  Tw  T      T ,
+
+(28)
+
+T
+ 0,
+x
+
+(29)
+
+T
+a
+ Tw  T 
+ ',
+y
+vf
+ 2T
+a
+ Tw  T   ''.
+2
+y
+vf
+
+Substitution of equations (16), (28) – (31) into equation (5) gives
+
+24
+
+(30)
+
+(31)
+
+

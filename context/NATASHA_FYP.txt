@@ -1,0 +1,3867 @@
+UNIVERSITI TEKNOLOGI MARA
+
+THOMSON AND TROIAN SLIP ON
+MAGNETOHYDRODYNAMIC (MHD) FLOW OF
+EYRING-POWELL TERNARY NANOFLUID PAST A
+STRETCHING/SHRINKING SHEET
+
+NUR NATASHA BINTI SARBANI
+
+BACHELOR OF SCIENCE (HONS.) MATHEMATICAL MODELLING
+AND ANALYTICS
+
+FACULTY OF COMPUTER AND MATHEMATICAL SCIENCES
+
+JULY 2025
+
+APPROVED BY:
+
+…………………………………..
+DR. NUR SYAZANA ANUAR
+Supervisor
+Faculty of Computer and Mathematical Sciences
+Universiti Teknologi MARA
+
+ii
+
+ABSTRACT
+The purpose of this study is to examine the flow of an Eyring-Powell ternary nanofluid under
+the influence of magnetic parameter, volume fraction of nanoparticles, Thomson and Troian
+slip condition over both shrinking and stretching surfaces. The governing equations which are
+equations of momentum, continuity, and energy along with its boundary conditions were
+formulated. The partial differential equation of the system was transformed into ordinary
+differential equation using the similarity variables before being solved numerically using the
+MATLAB’s built-in software, BVP4C. The present results were validated through comparison
+with past studies, showing a good accuracy of the current model. The impact of different values
+of volume fraction of nanoparticles, magnetic, slip velocity and critical shear rate parameters
+on local skin friction, Nusselt number, velocity and temperature profile were analysed and
+illustrated graphically. The results reveal that the velocity profile and Nusselt number increases
+while the temperature profile decreases when the value of magnetic, slip velocity and critical
+shear rate parameter increases. Local skin friction becomes higher with higher value magnetic
+parameter but lower value of slip velocity and critical shear rate parameters. Furthermore,
+ternary nanofluid exhibit the lowest velocity but the highest temperature and local skin friction
+compared to hybrid nanofluid and nanofluid while ternary nanofluid shows a moderate Nusselt
+number.
+
+iii
+
+ACKNOWLEDGEMENT
+Firstly, I want to thank Allah for giving me the opportunity to complete my research for the
+Final Year Project. I am truly grateful that I am able to complete my project with good health
+be it physically and mentally. I wish to express my gratitude to my supervisor, Dr. Nur Syazana
+Anuar, for her unwavering encouragement and full guidance and suggestions throughout my
+project. The guidance was really helpful and improved my comprehension of the topic.
+Next, I would like to thank my parents for their full support and for always encouraging me by
+giving the motivation to finish this project. Not to mention, special thanks to my classmate for
+always being there for me and sharing their thoughts for the projects. The project might not be
+finished without their assistance. Lastly, I would like to express my deepest appreciation to the
+people that are directly or indirectly helping me in this report completion.
+
+iv
+
+TABLE OF CONTENTS
+
+ABSTRACT ............................................................................................................................. iii
+ACKNOWLEDGEMENT ........................................................................................................iv
+TABLE OF CONTENTS ........................................................................................................... v
+LIST OF TABLES ...................................................................................................................vii
+LIST OF FIGURES ............................................................................................................... viii
+LIST OF SYMBOLS ................................................................................................................ ix
+LIST OF ABBREVIATIONS ................................................................................................... xi
+LIST OF SUBSCRIPTS ...........................................................................................................xi
+CHAPTER 1 .............................................................................................................................. 1
+1.1
+
+Research Background ................................................................................................ 1
+
+1.2
+
+Motivation .................................................................................................................. 4
+
+1.3
+
+Problem Statement ..................................................................................................... 5
+
+1.4
+
+Research Objectives ................................................................................................... 5
+
+1.5
+
+Significance of Study ................................................................................................. 6
+
+1.6
+
+Limitation................................................................................................................... 6
+
+1.7
+
+Assumption ................................................................................................................ 7
+
+1.8
+
+Ethical Committee ..................................................................................................... 8
+
+1.9
+
+Thesis Scope .............................................................................................................. 9
+
+1.10
+
+Thesis Outline ............................................................................................................ 9
+
+CHAPTER 2 ............................................................................................................................ 11
+2.1
+
+Boundary Layer Flow on Eyring Powell ................................................................. 11
+
+2.2
+
+Boundary Layer Flow of Hybrid Nanofluid ............................................................ 12
+
+2.3
+
+Boundary Layer Flow with Thomson and Troian Velocity Slip .............................. 13
+
+2.4
+
+Boundary Layer Flow with Magnetohydrodynamic (MHD) Effect ........................ 15
+
+CHAPTER 3 ............................................................................................................................ 17
+v
+
+3.1
+
+Introduction .............................................................................................................. 17
+
+3.2
+
+Mathematical Formulation .................................................................................... 18
+
+3.3
+
+Transformation of continuity equation .................................................................... 22
+
+3.4
+
+Transformation of momentum equation .................................................................. 22
+
+3.5
+
+Transformation of energy equation .......................................................................... 24
+
+3.6
+
+Transformation of boundary condition equation ..................................................... 25
+
+3.7
+
+Transformation of local skin friction ....................................................................... 27
+
+3.7
+
+Transformation of Nusselt number .......................................................................... 29
+
+3.8
+
+Numerical Method ................................................................................................... 30
+
+CHAPTER 4 ............................................................................................................................ 32
+4.1
+
+Validation of Results ................................................................................................ 32
+
+4.2
+
+The Effects of Magnetic Parameter on Velocity Problem and Temperature Problem,
+
+Local Skin Friction Coefficient, and Nusselt Number......................................................... 33
+4.3
+
+Effects of Slip Velocity and Critical Shear Rate Parameters on Velocity Problem and
+
+Temperature Problem, Local Skin Friction Coefficient, and Nusselt Number....................... 36
+4.4
+
+Effects of Volume Fraction of Nanoparticles on Velocity Problem and Temperature
+
+Problem, Local Skin Friction Coefficient, and Nusselt Number ............................................ 39
+CHAPTER 5 ............................................................................................................................ 43
+5.1
+
+Conclusion ............................................................................................................ 43
+
+5.2
+
+Recommendation ..................................................................................................... 43
+
+REFERENCES ........................................................................................................................ 45
+APPENDICES ......................................................................................................................... 52
+
+vi
+
+LIST OF TABLES
+Tables
+
+Title
+
+Page
+
+Table 1
+
+Thermophysical Properties of Engine Oil, Aluminium Alloys
+(AA7072, AA7075), and Cobalt Ferrite (CoFe2O4) (Adnan et al.,
+
+22
+
+2021; Karthikeyan et al., 2024; Khan et al., 2023)
+Table 2
+
+A comparison of f ''(0) and Re x1/2 C f when Pr  30 ,   1,
+
+M  S  L1  L2  1  2  3  0 with Past Study
+Table 3
+
+33
+
+Comparison of  '(0) between the present solution with
+previously
+
+published
+
+results
+
+when
+
+34
+
+  1, M  S  E1  1  L1  L2  1  2  3  0
+Table 4
+
+Comparison of f ''(0) between the present solution with
+previously published results when   1 (shrinking sheet) for
+several values of S
+
+vii
+
+34
+
+LIST OF FIGURES
+Figure
+
+Title
+
+Page
+
+Figure 1
+
+Boundary Layer (Schlichting & Gersten, 2016)
+
+1
+
+Figure 2
+
+Separation point of boundary layer (Chalia & Bharti, 2017)
+
+2
+
+Figure 3
+
+Slip and no-slip condition (Uthe et al., 2022)
+
+3
+
+Figure 4
+
+Methodology Framework
+
+18
+
+Figure 5
+
+Sketch of the flow problem
+
+19
+
+Figure 6
+
+Influence of M on f '( ) .
+
+35
+
+Figure 7
+
+Influence of M on  ( ) .
+
+36
+
+Figure 8
+
+Local skin friction coefficient with various values of M .
+
+36
+
+Figure 9
+
+Local Nusselt number with various values of M .
+
+37
+
+Figure 10
+
+Influence of L1and L2 on f '( ) .
+
+38
+
+Figure 11
+
+Influence of L1and L2 on  ( ) .
+
+39
+
+Figure 12
+
+Local skin friction coefficient with various values of L1and L2 .
+
+39
+
+Figure 13
+
+Local Nusselt number with various values of L1and L2 .
+
+40
+
+Figure 14
+
+Influence of 1,2 and 3 on f '( ) .
+
+41
+
+Figure 15
+
+Influence of 1,2 and 3 on  ( ) .
+
+42
+
+Figure 16
+
+Local skin friction coefficient with various volume
+concentration of 1,2 and 3.
+
+Figure 17
+
+42
+
+Local Nusselt number with various volume concentration of
+43
+
+1,2 and 3.
+
+viii
+
+LIST OF SYMBOLS
+
+w
+
+Shear Stress
+
+
+
+Dynamic viscosity
+
+x
+
+Boundary layer thickness
+
+1
+
+Eyring-Powell fluid parameter
+
+E1
+
+Eyring-Powell fluid parameter
+
+u, v
+
+Velocity components along x - and y -axes
+
+uw
+
+Velocity at the wall in
+
+ut
+
+Tangential velocity
+
+B
+
+Magnetic field
+
+T
+
+Temperature
+
+T
+
+Ambient temperature
+
+Tw
+
+Temperature at the wall
+
+
+
+Density
+
+
+
+Electrical conductivity
+
+k
+
+Thermal conductivity
+
+Cp
+
+Specific heat
+
+Cf
+
+Skin friction coefficient
+
+*
+
+Navier slip length
+
+*
+
+Reciprocal of shear rate
+
+S
+
+Suction/injection parameter
+
+1
+
+Volume fraction of nanoparticle AA7072
+
+2
+
+Volume fraction of nanoparticle AA7075
+
+3
+
+Volume fraction of nanoparticle CoFe2O4
+
+C 
+p
+
+Heat capacity
+
+ix
+
+Nux
+
+Nusselt Number
+
+qw
+
+Surface heat flux
+
+vf
+
+Kinematic viscosity
+
+
+
+Similarity variable
+
+f
+
+Dimensionless stream function
+
+
+
+Dimensionless temperature
+
+M
+
+Fluid parameter
+
+Pr
+
+Prandtl number
+
+
+
+Shrinking/Stretching parameter
+
+c
+
+Critical shrinking/Stretching parameter
+
+L1
+
+Velocity slip parameter
+
+L2
+
+Critical shear rate parameter
+
+Re x
+
+Reynold number
+
+a, n*
+
+Constant
+
+x
+
+LIST OF ABBREVIATIONS
+MHD
+
+Magnetohydrodynamic
+
+PDE
+
+Partial differential equation
+
+ODE
+
+Ordinary differential equation
+
+TD
+
+Tiwari and Das
+
+RKF45
+
+Runge-Kutta-Fehlberg method
+
+LIST OF SUBSCRIPTS
+thnf
+
+Ternary nanofluid
+
+hnf
+
+Hybrid nanofluid
+
+nf
+
+Nanofluid
+
+bf
+
+Base fluid
+
+xi
+
+CHAPTER 1
+INTRODUCTION
+1.1
+
+Research Background
+
+Boundary layer is a thin layer of flowing fluid that forms when in contact with a solid surface
+and the development of a boundary layer is illustrated in Figure 1. This theory is introduced
+by Ludwig Prandtl in 1904. The boundary layers are typically classified into two types which
+are laminar and turbulent boundary layer. The horizontal axis, which is the distance of the plate
+is labelled as x , while the distance perpendicular to the plate is y . As the fluid flows over the
+surface, a boundary layer forms where the velocity changes from zero to freestream velocity,
+U  and the velocity inside the boundary layer is denoted as u ( x, y ) while  x represents the
+boundary layer thickness. The laminar boundary layer, which typically occurs at low velocities,
+is when the fluid flows smoothly and the particles are arranged in parallel layers (Schlichting
+& Gersten, 2016). However, in turbulent boundary layer, the flow is more chaotic than in the
+laminar flow, improving the fluid’s heat transfer ability.
+
+Figure 1. Boundary Layer (Schlichting & Gersten, 2016)
+The transition of the laminar to turbulent boundary layer is caused by an unstable flow and a
+disturbance that occurs in the stream outside of the layer. During the transition region, the layer
+gradually becomes unstable and separated from the layer, which later rejoins as the turbulent
+layer (De Vault et al., 1939) as depicted in Figure 2. The separation point of the boundary layer
+occurs when the fluid starts to detach from the wall (Smith, 1986). One of the causes are due
+to the adverse pressure gradient around the surface (Simpson, 1989). Adverse pressure gradient
+is when there are increases in pressure in the direction of the flow. (Kundu et al., 2016).
+
+1
+
+Figure 2. Separation point of boundary layer (Chalia & Bharti, 2017)
+
+There are two main categories of fluids which are Newtonian fluids and non-Newtonian fluids.
+They are distinguished by their viscosity, or the measure of its resistance to shear stress applied
+on the fluid. Newtonian fluids are defined as those whose viscosity does not change in response
+and independent to applied stress and that are not affected by shear stress. For example, water,
+and alcohol. On the other hand, non-Newtonian fluids have a non-linear relationship with shear
+stress and strain, and its viscosity does not remain constant after some external force. Unlike
+Newtonian fluids, the fluids may become more thicker or thinner. Custard, starch and blood
+are a few examples (Böhme, 2012). Non-Newtonian fluid is widely used in the industry as
+they have complex behaviours that make them suitable for various process.
+As non-Newtonian exhibit a complex behaviour compared to the normal fluid, models are used
+to describe their characteristics using equations to gain more understanding of it. Some of the
+examples of non-Newtonian models are Ellis Fluid Model, Power Law, that shows the simple
+relationship between shear stress and shear rate (Chhabra, 2010), and Eyring-Powell model
+with the equation of shear tensor,  ij  
+
+ 1 ui 
+ui 1
+ sinh 1 
+
+ E x  , where ij is the shear tensor,
+x j 
+j 
+
+
+E and  is the Eyring-Powell fluid parameters, and  refers to dynamic viscosity. Eyring-
+
+Powell model has several advantages over other models such as; the model was not derived
+from the empirical connection but rather from the kinetic theory of liquids. Then, for both low
+and high shear rates, it accurately reduces to Newtonian behaviour (Rahimi et al., 2017). By
+examining how these fluids behave under shear strain, the Eyring-Powell model aids in
+industry design and application optimization.
+
+2
+
+Nanofluid is a fluid that is made of nano-sized particles is discovered by Choi in 1995 for the
+improvement of thermal properties of fluid due to higher energy demands (Zheng & Zhang,
+2017). By mixing in the base fluid with small amounts of solid particles, the heat transfer
+ability of the fluid is enhanced, making it useful in the applications such as engine cooling and
+chiller (Chamsa-ard et al., 2017). Hybrid nanofluid is when more than one nanoparticle is
+added. It was introduced to overcome the higher demand of the industry. It has stronger heat
+conduction mechanism as they are capable to cool down systems with high temperatures. For
+example, ternary nanofluid is made up from the suspensions of three different nanoparticles
+into the base liquid. The presence of multiple nanoparticles in ternary nanofluids enhance its
+properties such as the thermal conductivity and are more efficient in heat transfer through
+convection (Adun et al., 2021).
+A no-slip condition in fluid dynamics states that the velocity of the fluid that is in contact with
+the surface is zero as displayed in Figure 3. However, non-Newtonian fluids often exhibit a
+slip condition, which is the velocity of the fluid that is closest to the solid is non-zero. The
+cause for this condition is due to the surface roughness as it can influence the movement of the
+fluid along the surface (Sochi, 2011). When the surface is rougher, the slip that occur will
+decrease and the non-zero velocity of the fluid near the surface can help carry the heat faster
+away from the solid, making the heat transfer process more efficient.
+
+Figure 3. Slip and no-slip condition (Uthe et al., 2022)
+
+Some of the models are introduced to describe the slip condition which are Navier slip
+and Maxwell slip condition. However, for more generalised slip condition, Thomas and Troian
+3
+
+slip are introduced where the length of the slip does not stay constant but can varies with shear
+rate. In this model, the slip length becomes a variable since it can be different when the shear
+rate is increasing (Dey et al., 2023). Thomson and Troian slip condition involves a non-linear
+relationship of the shear rate which is different from Navier slip that consider the linear
+relationship of the slip velocity and the shear rate (Singh et al., 2024).
+Magnetohydrodynamics (MHD) is a study of the fluid dynamics in the presence of a magnetic
+field and the word magnetohydrodynamics is derived from the word magneto, hydro and
+dynamics. Salt water, liquid metals and plasmas are some of the examples for electrically
+conducting fluids. Forces on the fluid is created by the currents in the fluid that is instigated
+by the magnetic field (Sheikholeslami & Ganji, 2016). Examples for the applications of MHD
+are magnetic endoscopy and transporting complex bio-waste fluids. The presence of the
+magnetic field has a significant influence on the heat transfer ability of the fluid.
+
+1.2
+
+Motivation
+
+In this modern world where advanced technology has been developed, the demand for better
+thermal conductivity and heat transfer ability has been increasing. The high-performance
+technology that produces a lot of heat can cause overheating which will reduce its efficiency
+and can cause internal damage. Hence, cooling systems are important to this technology as it
+can prevent overheating and extend its lifespan. Nanofluids have been used widely in the
+industry in the cooling system as it has higher thermal conductivity and can transfer heat better,
+especially ternary nanofluid where it contains a combination of 3 types of nanoparticles that
+enhances its heat transfer ability. Then, by considering the effect of the magnetohydrodynamic
+effects, it can improve the understanding of applications that involves the presence of magnetic
+field. Although no-slip conditions are a common assumption, slip effects may occur
+particularly in a high-shear system and it should be considered to develop a more accurate
+mathematical model to the real-world. This study is motivated by the research gap as there is
+limited studies that studied simultaneously on the effects of the magnetic field and Thomson
+and Troian slip condition on Eyring-Powell ternary nanofluid flow over stretching/shrinking
+sheet due to the complexity of the non-Newtonian behavior and the nonlinear slip conditions.
+This study will observe the effects of these parameters which will help to develop a better
+cooling system of the industry by understanding their behavior and gain more insight about
+advance fluid dynamics.
+4
+
+1.3
+
+Problem Statement
+
+Nanofluid is an enhanced fluid that has improved thermal conductivity, heat capacity, electrical
+conductivity and is a great thermal transport. It was widely used in the industry where heat
+transfer is important such as on heating or cooling applications (Aich et al., 2023). However,
+although the nanofluids have helped the industry tremendously, there are still some challenges
+faced such as the effectiveness, stability, and the production cost of it (Saidur et al., 2011). The
+standard nanofluid that only contains one type of nanoparticle has a limited thermal
+conductivity for applications in the industry that are in need for greater heat transfer ability. To
+overcome these limitations, new nanoparticles such as hybrid nanofluid, that are more
+advanced and specialize in suiting their needs and have higher thermal conductivity are
+introduced.
+Then, the study of magnetohydrodynamic (MHD) is important as the use of nanofluids that is
+electrically conducting fluids due to its metal nanoparticles can influence the boundary layer
+flow. Some of the cooling rectors in industry such as nuclear reactor cooling channels, do
+depend on the magnetic field as electrically conducting nanofluid is widely used as it can help
+to enhance the heat transfer efficiency (Ishak, 2011). Furthermore, no-slip condition is
+commonly assumed from various previous studies, however, small slips may occur which will
+affect the velocity of the fluid on the surface and its heat transfer. The Thomson and Troian slip
+where the slip varies with the local shear stress, making it more accurate for high shear flow
+applications, has not been extensively studied and the presence of slip improves the fluids flow
+efficiency (Ramzan et al., 2020).
+Therefore, this study focuses on the magnetohydrodynamic (MHD) Eyring-Powell ternary
+nanofluid that consists of engine oil as its base fluid with aluminium alloys (AA7072 and
+AA7075) and cobalt ferrite nanoparticles, with Thomson and Troian slip condition.
+
+1.4
+
+Research Objectives
+
+The objectives of this study are:
+i.
+
+To
+
+formulate
+
+a
+
+mathematical
+
+magnetohydrodynamic
+
+(MHD)
+
+model
+
+of
+
+Eyring-Powell
+
+boundary
+
+layer
+
+flow
+
+of
+
+ternary
+
+nanofluid
+
+over
+
+a
+
+stretching/shrinking sheet with Thomson and Troian slip condition.
+5
+
+ii.
+
+To transform partial differential equation (PDE) into nonlinear ordinary differential
+equation (ODE) by using similarity transformation method.
+
+iii.
+
+To solve the ordinary differential equation (ODE) using BVP4C solver in MATLAB
+software.
+
+iv.
+
+To analyse the impact of magnetic field, critical shear rate, velocity slip parameter
+and volume fraction of nanoparticle on velocity and temperature profile, and skin
+friction coefficient and local Nusselt number.
+
+1.5
+
+Significance of Study
+
+The significance of this study is by understanding the properties of the nanoparticle and its
+composition, we can use the nanoparticle to its maximum potential which will improve its
+performance in the industry, Eyring Powell model captures shear-dependent viscosity behavior
+at both low and high shear rates, making it more significant than the other models. This study
+uses mathematical modelling as it has lower cost rather than doing a physical experiment that
+requires nanoparticles which are more time consuming and have higher cost. This model can
+also be used for predictions when there are changes in any of the variables. It will improve the
+prediction of the systems and help to advance the industry, making the uses of these nanofluid
+to be optimized.
+The new nanofluids are introduced to further enhance their effectiveness in the industry. They
+have been modified to a more advanced nanofluid that specializes in a specific application,
+making it more effective. The presence of different types of nanoparticles in a base fluid can
+improve the properties of the fluid. In this study, the nanoparticles are aluminium alloys
+(AA7072 and AA7075) and cobalt ferrite (CoFe2O4) in a base fluid of an engine oil. These
+nanoparticles increase the thermal and mechanical properties.
+
+By modelling this fluid
+
+behaviour under the influence of magnetic parameter and slip condition, it can provide insights
+of its behaviour which can lead to improved systems such as cooling technologies and even
+lubr.
+
+1.6
+
+Limitation
+
+This study has some limitations which are, the results obtained are solved numerically using
+the MATLAB software and BVP4C solver. This research is not done experimentally, which
+6
+
+may have a different result with the real practical systems. The mathematical model formulated
+in this study does not completely represent the complex real-world system as it has been
+simplified by omitting some factors and only considering multiple parameters as a complex
+model is time consuming and more challenging. The simplifications of the model may affect
+the model predictive ability for the applications.
+
+1.7
+
+Assumption
+
+In this study, some assumptions are made to simplify the mathematical model. This study
+assumed the flow to be laminar and steady. Then, nanoparticles are assumed to be uniformly
+distributed across the base fluid. The magnetic field is applied vertically to the
+stretching/shrinking sheet. Moreover, Thomson and Troian slip condition is assumed to be
+present where the local shear stress causes the slip length to vary. Although these assumptions
+were made to simplify the model, it is still relevant to analyse the impacts of magnetic
+parameter, velocity slip and critical shear rate parameters, and the volume fraction of the
+nanoparticles to the velocity and temperature profiles, local skin friction coefficients and
+Nusselt number effectively.
+
+7
+
+1.8
+
+Ethical Committee
+
+8
+
+1.9
+
+Thesis Scope
+
+This research focuses on the steady and laminar part of the boundary layer flow rather than the
+unsteady effects. Furthermore, only some parameters are considered in the formulation which
+are magnetic, slip parameters and volume fraction of nanoparticles. Other parameters such as
+thermal radiation and chemical reaction are not considered. Then, the nanoparticles used in this
+study are aluminium alloys (AA7072 and AA7075) and cobalt ferrite (CoFe 2O4) with the base
+fluid engine oil while the other combinations of nanoparticles were not being studied. The
+influence of different nanoparticles was not considered which may be needed in different reallife applications. Future work can consider these aspects to develop a more accurate and
+realistic model.
+
+1.10
+
+Thesis Outline
+
+This research consists of five chapters which are introduction, literature review, methodology,
+results and discussion, then conclusion. In the first chapter, introduction, the background of the
+study is explained, related to the boundary layer flow, nanofluid, Eyring-Powell model,
+magnetohydrodynamic, and Thomson and Troian slip condition. This chapter consists of
+motivation, problem statements, research objectives, research questions, significance of the
+study, limitation, assumption, ethical committee, and thesis scope. Then, Chapter 2 provides
+the literature review of the previous research that involves the topics of boundary layer flow of
+Eyring-Powell fluid, boundary layer, hybrid nanofluid, boundary layer flow with Thomson and
+Troian velocity slip, boundary layer flow with the magnetohydrodynamic (MHD) effect and
+identifies the research gap.
+Chapter 3 describes the methodology of this research, where it starts with mathematical
+formulation, transforming partial differential equations (PDEs) into ordinary differential
+equations (ODEs) through the similarity transformation. The ODEs were then solved
+numerically using the MATLAB built-in software, BVP4C. In Chapter 4, results and discussion,
+the numerical values obtained are validated with several past research and the impact of
+magnetic parameter, velocity slip and critical shear rate parameter, and volume fraction of
+nanoparticles on velocity profile, temperature profile, local skin friction and Nusselt number
+
+9
+
+were illustrated graphically and discussed. Finally, Chapter 5 concluded the key findings of the
+study and recommendations for future study were provided.
+
+10
+
+CHAPTER 2
+LITERATURE REVIEW
+2.1
+
+Boundary Layer Flow on Eyring Powell
+
+There are numerous authors that have done research about boundary layer flow on Eyring
+Powell. Patel & Timol (2009) did a study about the Eyring-Powell fluid flow where the twodimensional flow equations are solved by the method of satisfaction of asymptotic boundary
+conditions. Javed et al. (2013) also did research of Eyring-Powell fluid flow on a stretching
+sheet where the higher value of fluid parameter will lower the velocity profile. Hayat et al.
+(2013) extended the study by considering the convective boundary conditions of the EyringPowell flow over a stretching sheet and the differential systems were solved using homotopy
+method. It was found that the boundary layer thickness and the temperature decrease by the
+fluid parameters. Then, Hayat et al. (2015) takes account of the effects by the heat and mass
+transfer of the flow of three-dimensional Eyring-Powell fluid. The analytical solutions of the
+problem were obtained by homotopy analysis method. The result gained from this research is
+that with the increasing of Eyring-Powell parameters, the velocity profile increases.
+Sher Akbar et al. (2015) expanded the research by adding the magnetic field effects towards
+the Eyring-Powell fluid flow over a stretching sheet. This problem was solved using implicit
+finite difference method and the result obtained is when the Eyring-Powell fluid parameters is
+increasing, it will cause a stronger resistance of flow. Aside from that, Ishaq et al. (2018)
+further investigates the effects of magnetohydrodynamic (MHD) on the nanofluid flow of
+Eyring Powell model over a porous stretching surface. Using the optima approach, the study
+found that there is a decrease in the system entropy when the fluid parameter is increasing. Pal
+& Mondal (2022) performed research of the combined effects of magnetic field and buoyancy
+force, microorganisms and nanoparticles added to the Eyring Powell fluid to make it more
+stable over the stretching sheet in the presence of thermal radiation. By solving the equations
+using similarity transformation, it was revealed that with an increase in Eyring-Powell fluid
+parameter, the microorganisms difference parameter will decrease.
+Then, Kumar & Srinivas (2020) considered the chemical reactions and added the effects of
+Joule heating and thermal radiation to the flow of Eyring-Powell fluid on an inclined stretching
+sheet. Runge-Kutta fourth order is one of the methods used to obtain the results from the flow
+equations. It was discovered that when there are increases in Eyring-Powell fluid parameters
+will cause the increment of the velocity profile while the local skin friction coefficient is higher
+11
+
+due to the increasing radiation parameter. Meanwhile, Naseem et al. (2023) did research about
+the analysis of heat transport of Eyring Powell model with joule heating effects and radiation
+by similarity transformation and the result was the temperature profile decreases while the
+velocity profile increases for a higher value of fluid parameters. Mwamba (2024) expand the
+study by investigating the flow of Powell-Eyring fluid over a stretching sheet while considering
+dissipation, thermal radiation and Dufour effects and solve it numerically using bvp4c in
+MATLAB. He found that with the increasing ratio of velocity, is due to increases of EyringPowell fluid parameter while a higher value of magnetic parameter causes the velocity ratio to
+drop.
+
+2.2
+
+Boundary Layer Flow of Hybrid Nanofluid
+
+Many studies have focused on hybrid nanofluids that are mainly used in industry as they have
+enhanced heat transfer properties. Hayat & Nadeem (2017) did research about how chemical
+reaction effects and radiation affect the boundary layer flow of 3D rotation hybrid nanofluid in
+terms of its heat transfer characteristics over the stretching sheet. In this research, the hybrid
+nanofluid contains of water as its base fluid with Silver and Copper Oxide nanoparticles. By
+solving the system using bvp4c technique, they found that the rotation parameter increases the
+thermal boundary layer thickness and the presence of the hybrid nanofluid causes the
+temperature of the fluid to rise. Aziz et al. (2020) studied about the effect on the flow and the
+whole entropy of the Eyring-Powell nanofluid that is caused by the combination of thermal
+radiation and viscous dissipation and Keller box infinite difference scheme is used to find the
+solutions. They experimented on two types of nanofluid which are copper water (Cu-H 2O)
+nanofluid and alumina-copper water (Al2O3-Cu/H2O) hybrid nanofluid and were compared. It
+was found that hybrid nanofluid (Al2O3-Cu/H2O) is a better thermal insulator than copper water
+nanofluid and when the concentration of the nanoparticle increases, the rate of the heat transfer
+also increases.
+Then, the study was extended by Ahlam Aljabali et al. (2023) as they added the effect of the
+radiative heat flux to the flow of the hybrid Eyring-Powell nanofluid over a shrinking sheet and
+bvp4 function is applied to find the solution. Hybrid nanofluid that is being used is Ag-MgO,
+which is a water nanofluid and parameters such as shrinking parameter and radiation parameter
+are used to regulate the performance of the fluid. When the thermal radiation increases, heat
+distribution enhances and when the concentration of the nanoparticles increases, the heat
+12
+
+transmission is improved. Rashad et al. (2023) expanded the research by considering the flow
+of magnetic Eyring-Powell hybrid nanofluid that was affected by the heat source in a pored
+medium and thermal radiation and the method used are RKF45 and shooting method. The
+hybrid nanofluid contains ethylene glycol (EG), magnetite (Fe 3O4) and copper (Cu). The
+thermal rate for the fluid increases due to the resistance to the fluid motion when the magnetic
+parameter increases, and the temperature rises when the volume of the nanoparticles increases
+that later cause the increased viscosity of the fluid with its resistance to flow.
+The research then furthered by Ramireddy and Lakshmi (2024) where the impact of joule
+heating, buoyancy driven flow, thermal radiation, velocity profiles and viscous dissipation on
+the flow of the hybrid nanofluid over a porous cylinder surface is observed and solved using
+Keller Box method of convergence. The hybrid nanofluid selected for this research is blood as
+the base fluid where it will be mixed with magnesium (Mg) and magnetite (Fe 3O4)
+nanoparticles. The observation confirms that hybrid nanofluid is a better coolant than an
+ordinary base fluid since hybrid nanofluid can release more heat. On the other hand, Akram et
+al. (2024) did a study about the peristaltic flow of the hybrid nanofluid through an elliptical
+conduit where the system is solved using the perturbation technique. Polystyrene and graphene
+oxide nanoparticles were contained in the hybrid nanofluid with water as its base fluid and it
+was found that when the elliptic of the conduit reduces into a circular shape, it diminishes the
+pressure gradient of the system. Then, by increasing the concentration of the nanoparticle, it
+can enhance the temperature profile of the fluid across the elliptic conduit.
+A study was done by Manjunatha et al. (2022) to observe the thermal conductivity between the
+ternary nanofluid and hybrid nanofluid where the system of equations was solved using RKF45 method. The result reveals that ternary nanofluid has better heat transfer abilities compared
+to hybrid nanofluid and nanofluid. However, there are still lack of research on the behavior of
+the ternary nanofluids on the boundary layer flow.
+
+2.3
+
+Boundary Layer Flow with Thomson and Troian Velocity Slip
+
+Many studies have considered the presence of Thomson and Troian velocity slip condition at
+the boundary. Abbas et al. (2019) researched about the how the electrically conducting
+nanofluid is affected by mixed convection and homogeneous-heterogeneous reaction by using
+the Tiwari and Das (TD) model with the boundary condition of Thomson and Troian over a
+shrinking and stretching sheets. Some of the parameters used to analyse the model were
+13
+
+volume fraction parameter, slip velocity parameter and critical shear rate parameter. It was
+found that the temperature profile exhibits distinct changes when being compared using partial
+slip and generalised slip and the increasing value of critical shear rate parameter and slip
+velocity parameter decreases the temperature profile. Nonlinear thermal radiation factor was
+added to the next research by Ahmad & Nadeem (2020) where they explored about water
+hybrid nanofluid affected by induced magnetic field with Thomson and Troian boundary
+condition over a nonlinear permeable stretching surface by using Cattaneo-Christov model of
+heat flux. It was discovered that the skin friction coefficient lowers with higher values of
+critical shear rate parameter.
+Then, Ramzan et al. (2020) extended the study by adding the impact of heat generation and the
+buoyancy effect to the mathematical model of carbon nanotubes, where both single-wall and
+multi-wall are considered, contained by the nanofluid over a stretching/shrinking surface near
+the stagnation point that discussed about the impact of the Thomson and Troian slip boundary.
+Using bvp4c function in MATLAB, it was found that when the solid values fraction and heat
+generation increases, the temperature of the system decreases, and the fluid velocity enhances
+by the slip velocity parameter. Akaje & Olajuwon (2021) further develop the study by using
+the magnetohydrodynamic (MHD) Casson nanofluid to explore the effect of nonlinear radiative
+heat transfer with the Thomson and Troian slip boundary condition where the solution is
+obtained by the spectral collocation method. The result shows that the higher values of thermal
+radiation and temperature ratio will thicken the temperature boundary layer and by increasing
+the value of critical shear rate, the temperature profile will be higher.
+Dey et al. (2022) took the study further by combining the impact of Thomson and Troian slip
+and Stefan blowing of nanofluid over a non-absorbent plate on forced convection motion.
+Numerous parameters were taken account which were suction/blowing, velocity slip, Brownian,
+and chemical reaction parameters. The result achieved from the numerical solution was the
+higher value of Stefan blowing parameter reduces the skin friction coefficient and increases the
+temperature profile while the increasing in critical shear rate and slip parameter causes the rate
+of mass transport to decrease. On the other hand, research about the flow of ternary nanofluid
+with the condition of Thomson and Troian were done by Li et al. (2023) to analyse the heat
+transfer abilities of the nanofluid that is formed from water as a base fluid that consists of Cu,
+Ag and TiO2 nanoparticles due to the slip impact. The mathematical model was solved using
+the RKF-45 method which results in the amount of heat conducted by the fluid to lower due to
+the higher thermal slip parameter.
+14
+
+Then, Mishra (2024) enhances the study of hybrid nanofluids flow over a surface while suction
+effects and Thomson and Troian slip are considered by aiming to analyse the nanofluid’s hydrothermal and electromagnetic characteristics, electromagnetohydrodynamic (EMHD) and
+solved it numerically using bvp4c function. Multiple parameters effects on the temperature
+distribution are observed which are permeability, heat generation, electric, velocity slip and
+critical shear rate parameter. The study found that the velocity of the hybrid nanofluid increases
+due to the rise value of velocity slip, critical shear rate and electric parameter.
+
+2.4
+
+Boundary Layer Flow with Magnetohydrodynamic (MHD) Effect
+
+Magnetohydrodynamic (MHD) can alter the boundary layer flow such as its viscosity and even
+the fluid’s velocity due to the presence of the magnetic and electric current in the fluid. Ibrahim
+and Tulu (2019) studied the heat and mass transfer of nanofluid encased in the porous surface
+with viscous dissipation effects and the MHD boundary layer flow that passes through the
+wedge which will then be solved using the Spectral Quasilinearisation Method. Several
+parameters and their effects on the velocity, temperature and concentration field are observed
+and analysed. The result shows that the increase of magnetic parameter and permeability
+reduces the velocity boundary layer thickness that are caused by the retarding force on the
+velocity field due to the presence of transverse magnetic field. Then, the study was extended
+where a study MHD peristaltic flow in the walls that are moving with peristaltic wave velocity
+was considered with the impact of joule dissipation and variable electrical conductivity by
+Qasim et al. (2019) by using the Generalised Differential Quadrature Method. The velocity of
+the temperature profiles decreases in the center of the flow with the increases of the Hartmann
+number because of the interactions between the magnetic field and the electrically conducting
+fluid that produces the opposing Lorentz force to the fluid flow direction.
+On the other hand, Raza (2019) adds the effects of slip and thermal radiation on the flow of
+Casson fluid’s magnetohydrodynamic stagnation point across a convective heated stretching
+sheet and were solved using the method of Runge-Kutta-Fehlberg. The rise in value of
+magnetic parameters causes the rate of the fluid flow to become lower. Then, Fatunmbi et al.
+(2020) expanded the research about by considering multiple slip conditions of the
+magnetohydrodynamic fluid flow in a porous medium and the flow, mass, and heat transfer
+and the impact of the thermal, velocity and concentration boundary conditions over the nonlinear surface were observed. Using the spectral quasi-linearisation method, the observation
+15
+
+obtained is velocity of the fluid will decrease while the temperature distribution will increase
+with the rise of magnetic field.
+Lund et al. (2020) refined the research by investigating the stability of the hybrid nanofluid that
+contains the nanoparticles of Cu-Al2O3 with water as its base fluid, carrying out the MHD flow
+in the presence of thermal radiation across the stretching and shrinking sheet by using the
+shooting method in Maple software. The result obtained is with the decreases of the volume
+fraction for nanoparticle copper, the magnetic parameter gets higher which leads to a better
+heat transfer rate. In a related context, Ullah et al. (2021) explores the MHD blood flow over
+a stretching surface that is impacted by the thermal conductivity, temperature dependent
+viscosity, chemical reaction, and ohmic effect where Levenberg-Marquardt scheme-based
+propagation technique (NN-BLMS) is used. The findings indicate that the electromagnetic
+force appeared due to the presence of ohmic effect, and the temperature of the blood rises. The
+flow temperature also becomes higher when the viscous heating in the flow is generated by the
+magnetic field.
+Although there are few studies that investigated the impact of MHD and Thomson and Troian
+velocity slip on hybrid nanofluid separately, research that considers these two effects, magnetic
+field, velocity slip and critical shear rate parameters at the same time with Eyring-Powell
+ternary nanofluids is very limited. Therefore, the study of these parameters impacting the
+velocity profile, temperature profile, skin friction coefficient and Nusselt number can improve
+the understanding of how these parameters behave which is crucial for the industry.
+
+16
+
+CHAPTER 3
+RESEARCH METHODOLOGY
+3.1
+
+Introduction
+
+This chapter begins with the mathematical formulation which includes continuity, momentum,
+and energy equations, along with the boundary conditions. This study is extended from the
+research of Javed et al. (2013) by considering magnetohydrodynamic (MHD) ternary nanofluid
+with Thomson and Troian velocity slip. The partial differential equations are transformed into
+ordinary differential equations by using the similarity transformation and then will be solved
+using BVP4C solver in MATLAB software, gets validated by past research, and the result will
+be discussed as depicted in the methodology framework as shown in Figure 4.
+
+Partial differential equations (PDEs)
+Similarity Transformation
+Nonlinear ordinary differential equations (ODEs)
+
+Numerical solution using bvp4c in MATLAB
+
+1. Validation
+2. Result and discussion
+Problem:
+
+
+
+Velocity
+Temperature
+
+Physical Quantities:
+
+
+
+Skin friction coefficient
+Local Nusselt number
+
+Parameters
+
+
+
+
+
+
+
+Fluid parameters
+Velocity slip parameter
+Magnetic parameter
+Stretching/shrinking parameter
+Critical shear rate parameter
+Nanoparticle volume fraction
+
+Figure 4. Methodology Framework
+17
+
+3.2
+
+Mathematical Formulation
+
+In this study, a steady, two-dimensional and incompressible flow of non-Newtonian EyringPowell ternary nanofluid over the stretching/shrinking sheet that aligns with the x -axis and
+plane y  0 of the cartesian coordinate system were considered, as depicted in Figure 5. The
+sheet is being stretched/shrinked with a linear velocity, uw  ax where a is a constant. T is
+the ambient temperature, Tw as the temperature at the wall, B is the magnetic field and slip
+velocity is presence along the surface. In this work, the ternary nanofluid used is engine oil as
+the base fluid and aluminium alloys (AA7072 and AA7075) and cobalt ferrite (CoFe 2O4)
+nanoparticles.
+y
+
+T
+AA7072
+AA7075
+CoFe 2O
+
+Nanoparticles
+(AA7072-AA7075-CoFe2O/Engine Oil)
+
+x
+
+uw  ax
+
+uw  ax
+
+B
+
+Slip velocity
+
+vw
+
+Figure 5: Sketch of the flow problem
+
+Eyring-Powell model will be used where it is derived from the theory of rate processes for the
+purpose of explaining the shear of non-Newtonian flow. The equation to show the shear tensor,
+
+ w , in an Eyring-Powell model is given by Hayat et al. (2012)
+w  
+
+ 1 ui 
+ui 1
+ sinh 1 
+ E x 
+x j 
+j 
+
+
+(1)
+
+where  is the dynamic viscosity while   0 x 1 and E  E0 x are the Eyring-Powell
+model’s fluid parameters. The second order function of sinh 1 approximation is used as
+3
+
+ 1 ui  1 ui 1  1 ui  1 ui
+ 1
+,
+sinh 
+
+
+ E x  E x 6  E x  E x j
+j
+j
+j
+
+
+
+
+1
+
+18
+
+(2)
+
+The boundary layer approximation can simplify the equation of continuity, momentum
+(Agrawal & Kaswan, 2021) and energy equation (Oke & Mutuku, 2021) for an incompressible
+fluid that obeys Eyring-Powell. The equations are as follows:
+
+u v
+
+0,
+x y
+
+(3)
+2
+
+2
+ u   2u  thnf B u
+u
+u  thnf
+1   2u
+1
+u v
+
+
+
+
+,
+
+ 
+x
+y  thnf thnf  E  y 2 2 thnf  E 3  y  y 2
+thnf
+
+u
+
+T
+T
+k
+ 2T
+v
+
+x
+y   CP thnf y 2
+
+(4)
+
+(5)
+
+where u and v along the x and y -directions are velocity components,  is the fluid density,
+
+ is the dynamic viscosity, T as temperature, and  represents the electrical conductivity of
+the fluid. k represents the thermal conductivity of the liquid and C p denotes the specific heat.
+The subscript thnf refers to ternary nanofluid.
+The boundary condition applicable are (Abbas et al., 2019)
+
+
+1
+
+
+u  2 u
+u  uw  ut   ax   1   * 
+,
+y  y
+
+*
+
+v  vw  av f S ,
+
+T  Tw , at y  0
+
+(6)
+
+T  T as y  
+
+u0
+
+Here  * denotes the Navier slip length,  *  n* x 1 represents the reciprocal of shear rate where
+n* is a constant,  is the stretching/shrinking parameter, S is the suction parameter, and ut is
+
+the tangential velocity.
+Ternary hybrid nanofluid’s thermophysical properties (Hussain et al., 2024) are provided as
+follows:
+
+thnf 
+
+bf
+
+1   
+
+2.5
+
+where   1  2  3
+
+19
+
+(7)
+
+thnf  (1  2 )[(1  2 ){(1  3 ) bf  3 3}  2 2 ]  1 1
+
+(8)
+
+ k1  2khnf  21  khnf  k1  
+kthnf  khnf 
+ where
+ k1  2khnf  1 ( khnf  k1 ) 
+ 2k  k2  22 ( knf  k2 ) 
+ 2kbf  k3  23 ( kbf  k3 ) 
+khnf  knf  nf
+ and knf  kbf 
+
+ k2  2knf  2 (knf  k2 ) 
+ k3  2kbf  3 (kbf  k3 ) 
+
+(9)
+
+  1  21    hnf (1  21 )1   22 
+ thnf   hnf  1
+ where
+ 1 1  1    hnf (1  1 )
+
+
+  2 1  22    nf (1  22 ) 
+  3 1  23    bf (1  23 ) 
+ and  nf   bf 
+
+  2 1  2    nf (1  2 ) 
+  3 1  3    bf (1  3 ) 
+
+ hnf   nf 
+
+ C 
+
+p thnf
+
+
+
+
+
+   C p 1 1  1  1  (1  2 ) 1  3    C p bf  3   C p 3  2   C p 2 
+
+
+
+(10)
+
+(11)
+
+where  is nanoparticle volume fraction, 1 is volume fraction of nanoparticle AA7072, 2 is
+volume fraction of nanoparticle AA7075, 3 is the volume fraction of nanoparticle CoFe2O4,
+
+  C  is heat capacity and subscript bf denotes the base fluid while hnf represents hybrid
+p
+
+nanofluid.
+Table 1 shows the thermophysical properties of the base fluid engine oil with its nanoparticles
+which are aluminium alloys (AA7072 and AA7075) and cobalt ferrite (CoFe2O4).
+
+20
+
+Table 1. Thermophysical Properties of Engine Oil, Aluminium Alloys (AA7072, AA7075),
+and Cobalt Ferrite (CoFe2O4) (Adnan et al., 2021; Karthikeyan et al., 2024; Khan et al., 2023)
+Physical properties
+
+Engine oil
+
+AA7072
+
+AA7075
+
+CoFe2O4
+
+C p (J/kg K)
+
+1910
+
+893
+
+960
+
+700
+
+ (kg/m3)
+
+884
+
+2720
+
+2810
+
+4907
+
+k (W/mK)
+
+0.144
+
+222
+
+173
+
+3.7
+
+ (S/m)
+
+2.1  10 12
+
+34.83  10 6
+
+26.77  10 6
+
+5.51 109
+
+Then, the fluid exerts force onto the surface which also referred to as a local skin friction
+coefficient, C f , given as:
+Cf 
+
+
+ w     thnf 
+
+
+
+w
+,
+thnf uw 2
+
+(12)
+
+3
+1  u
+1  u  
+
+
+ E   y 6  E 3   y  
+
+.
+
+(13)
+
+y 0
+
+where  w is shear stress.
+The equations for Nux , Nusselt number is
+
+xqw
+,
+k f (Tw  T )
+
+(14)
+
+ T 
+qw   kthnf 
+ .
+ y  y  0
+
+(15)
+
+Nux 
+
+where qw is heat flux
+The similarity variables will be used to transform the partial differential equations into higher
+order non-linear ordinary differential equations (ODEs) by executing similarity transformation.
+The variables are defined as follows (Hayat et al., 2013):
+
+u  axf '   ,
+
+v   a(v f ) f ( ) ,
+
+ 
+
+21
+
+a ,
+y
+vf
+
+ ( ) 
+
+T  T
+Tw  T
+
+(16)
+
+where the  denotes the similarity variable, f and  are dimensionless stream function and
+dimensionless temperature respectively, and v f is kinematic viscosity while (') is the
+differentiation with the respect to  .
+3.3
+
+Transformation of continuity equation
+
+Differentiating u with respect to x and v with the respect to y partially, we obtain:
+
+u
+ af ',
+x
+
+(17)
+
+ a 
+v
+  av f 
+ f '  af '.
+ vf 
+y
+
+
+
+(18)
+
+From continuity equation (3), substitute equations (17) and (18) :
+af ' af '  0 .
+
+(19)
+
+Therefore, the continuity equation is satisfied.
+
+3.4
+
+Transformation of momentum equation
+
+The u is derived to second order with respect to y as below
+u
+a
+ ax
+f '',
+y
+vf
+ 2u a 2
+
+xf '''.
+y 2 v f
+
+(20)
+
+(21)
+
+The equation of (16), (17), (20) and (21) are substituted into the momentum equation (4)
+
+22
+
+
+ a 2
+
+1
+a 2 xf '2  a 2 xff ''   thnf 
+xf ''' 
+
+1
+
+
+
+ thnf thnf  0 x E0 x  v f
+
+2
+
+
+  a2
+  thnf B 2
+1
+a
+
+f ''   xf '''  
+(axf '),
+ ax
+
+  vf
+2 thnf  0 x 1E03 x 3 
+vf
+thnf
+
+ 
+ thnf
+  a2
+
+1
+a 2 xf '2  a 2 xff ''  
+
+xf
+'''
+
+
+
+1
+
+
+ thnf thnf  0 x E0 x   v f
+
+3
+ a 2 2   a2
+  thnf B 2
+1
+
+x
+f
+''
+xf
+'''
+( axf ').
+
+ 
+ 
+2  thnf  0 x 1 E03 x3  v f
+v
+
+f
+thnf
+
+
+
+(23)
+
+Factorisation by a 2 x and rearranging equation (23) lead to
+
+ thnf
+ 1
+
+1
+a 2 x( f '2  ff '')  a 2 x[
+
+f ''' 
+ 
+
+
+ thnf thnf  0 E0   v f
+
+3
+a
+ 1
+  thnf B 2
+1
+2
+
+f
+''
+f
+'''
+ f ' ],
+
+
+
+ 
+ v
+2 thnf  0 E0 3  v f
+ f
+ a thnf
+ thnf
+  f ''' 
+ a3
+  thnf B 2
+1
+1
+2
+f '2  ff ''  
+
+
+f
+''
+f
+'
+''
+f ',
+
+
+
+
+ 
+3 
+2
+
+
+
+ thnf thnf  0 E0   v f  2 thnf  0 E0  v f
+ a thnf
+
+ thnf
+ f ''' 
+ a3
+  thnf B 2
+1
+1
+2
+
+f '' f '''  
+f ' ( f '2  ff '')  0 .
+
+
+ 
+3 
+2
+
+
+
+ thnf thnf  0 E0  v f  2 thnf  0 E0  v f
+ a thnf
+
+Where v f 
+
+(24)
+
+f
+
+is substituted into equation (24) and the equation is then multiplied by thnf
+f
+f
+
+to gives
+
+
+
+ thnf
+  f ''' 
+1
+1
+a3
+2
+
+
+
+f
+''
+f
+'''
+
+ 
+ 
+3
+
+ thnf thnf  0 E0    f  f  2 thnf  0 E0    f  f  v f
+
+
+ B2
+ thnf
+f ' ( f '2  ff '')  0,
+a thnf
+
+23
+
+(25)
+
+Rearrange the equation (25)
+thnf
+ thnf B 2  thnf 
+thnf
+1
+a3
+2
+f '''
+f '''
+f
+''
+f
+'''
+
+
+ f '
+
+
+ f '2  ff ''  0,
+3
+f
+ f  0 E0
+2  f  0 E0 v f
+a thnf   f 
+f
+ thnf
+
+ thnf B 2  thnf 
+thnf
+2
+ 1  E11 f ''   f ''' 
+( f '2  ff '')  0.
+
+
+ f '
+
+a thnf   f 
+f
+ f
+
+
+Where 1 
+
+1
+
+ f  0 E0
+
+and E1 
+
+(26)
+
+a3
+are the Eyring-Powell fluid parameters.
+2 E0 2 v f
+
+Rearrange equation (26)
+ thnf
+
+ B2   
+
+ 1  E11 f ''2   f '''  thnf  f  f ' thnf ( f '2  ff '')  0,
+
+
+
+
+a f   f 
+f
+ f
+
+ thnf
+
+
+
+ 1  E11 f ''2   f '''   thnf Mf ' thnf ( f '2  ff '')  0
+
+
+f
+f
+ f
+
+
+Where M 
+
+3.5
+
+(27)
+
+f 2
+B is the magnetic parameter.
+a f
+
+Transformation of energy equation
+
+In transforming energy equation (5), we rearrange and differentiate the equation of
+temperature with the respect of x and y respectively
+T  Tw  T      T ,
+
+(28)
+
+T
+ 0,
+x
+
+(29)
+
+T
+a
+ Tw  T 
+ ',
+y
+vf
+ 2T
+a
+ Tw  T   ''.
+2
+y
+vf
+
+Substitution of equations (16), (28) – (31) into equation (5) gives
+
+24
+
+(30)
+
+(31)
+
+ av f f  Tw  T 
+
+kthnf
+a
+'
+vf
+ C p 
+
+a
+Tw  T   '' .
+vf
+
+thnf
+
+(32)
+
+By dividing equation (32) by a  Tw  T  and rearranging the terms, we have
+af Tw  T   ' 
+
+kthnf
+
+a
+Tw  T   '',
+
+ C 
+
+vf
+
+p thnf
+
+ f ' 
+
+kthnf
+
+1
+ '',
+vf
+
+ C 
+
+p thnf
+
+kthnf
+
+ C 
+
+p thnf
+
+where Pr 
+
+ f C p  f
+kf
+
+1
+ '' f  '  0.
+vf
+
+(33)
+
+. Rearranging equation (33) gives
+kthnf
+
+ C 
+
+p thnf
+
+kthnf
+
+ C 
+
+p thnf
+
+f
+ '' f  '  0,
+f
+
+ f k f C p  f
+ '' f  '  0,
+ f k f C p 
+f
+
+
+
+kf
+
+  '' f  '  0,
+  C p thnf   C p  f   f  C p  f 
+kthnf k f
+ 1 
+ '' f  '  0
+ C p    C p   Pr 
+kthnf k f
+
+thnf
+
+3.6
+
+f
+
+Transformation of boundary condition equation
+
+When y  0 ,
+
+25
+
+(34)
+
+a
+ 0 ,
+vf
+
+
+
+(35)
+
+  0.
+
+
+v  av f S at y  0
+v  vw ,
+av f f  0   av f S ,
+f  0  S.
+
+
+
+T  Tw at y  0
+T  Tw  T   ( )  T ,
+Tw  Tw  T    0   T ,
+
+ 0 
+
+Tw  T
+,
+Tw  T
+
+  0   1.
+
+
+
+u  uw  ut at y  0
+
+
+1
+
+
+
+ 2 
+
+a
+a
+axf '(0)   ax   * 1  n* x 1  ax
+f ''(0)    ax
+f ''(0)  ,
+
+ 
+
+
+vf
+vf
+
+ 
+
+
+
+
+1
+
+
+
+ 2 
+
+a
+a
+*
+*
+axf '(0)   ax   1  n  a
+f ''(0)    ax
+f ''(0)  .
+ vf
+ 
+
+
+vf
+
+ 
+
+
+
+Equation (36) is then simplified
+
+
+1
+
+ a 
+
+ 2
+a
+*
+*
+f '(0)     
+f ''(0)    f ''(0)  ,
+ 1  n  a
+ vf 
+ vf
+
+
+
+
+
+1
+
+f '(0)    L1 1  L2 f ''(0)  2  f ''(0)  .
+
+
+26
+
+(36)
+
+where L1 and L2 are velocity slip parameter and critical shear rate respectively and are
+expressed as
+L1 
+
+a *
+a *
+ , L2  a
+n .
+vf
+vf
+
+The second boundary condition which is u  0 , T  T as y   is applied to the
+similarity variables (16),
+As y   ,
+
+
+
+a
+    ,
+vf
+
+ 
+
+
+u  0 as y  
+u  0,
+axf '( )  0,
+f '( )  0.
+
+
+
+(37)
+
+T  T as y  
+
+Tw  T     T  T ,
+Tw  T     T  T ,
+    0,
+
+The boundary condition (6) becomes
+1
+
+f (0)  S , f '(0)    L1 1  L2 f ''(0)  2  f ''(0)  , (0)  1
+
+
+f '    0,     0 as    .
+
+3.7
+
+Transformation of local skin friction
+
+Substitute equation (20) when y  0 into equation (13), we have
+27
+
+(38)
+
+3
+
+
+
+
+1 
+a
+1 
+a
+ w    thnf 
+f ''(0)  
+f ''(0)  .
+ ax
+ ax
+
+3
+ 6 E 
+
+ E  
+vf
+vf
+
+
+
+
+
+(39)
+
+Substitution of equation (39) into (12) gives
+
+Cf 
+
+
+
+
+1 
+a
+1 
+a
+ thnf   E   ax v f ''(0)   6 E 3  ax v f ''(0) 
+
+
+f
+f
+
+
+
+
+Factorising the term
+
+Cf 
+
+ f  ax 
+
+3
+
+2
+
+.
+
+(40)
+
+a
+from equation (40),
+vf
+
+a 
+1 
+1
+2 a
+ax 
+( f ''(0))3 
+ f ''(0)  
+ thnf 
+
+3 
+v f 
+E 
+6 E
+vf
+
+
+ f ax
+
+.
+
+(41)
+
+Rearranging equation (41),
+Cf 
+Cf 
+Cf 
+
+
+1 1 
+1 
+1
+2 a
+ax 
+( f ''(0))3  ,
+ f ''(0)  
+ thnf 
+
+3 
+av f  f x 
+E 
+6 E
+vf
+
+
+1 
+1 
+1
+2 a
+ax 
+( f ''(0))3  ,
+ f ''(0)  
+ thnf 
+
+3 
+a  f  f x 
+E 
+6 E
+vf
+
+
+vf  f
+
+
+
+v f 1  thnf
+1
+1
+2 a
+3
+
+f
+''(0)
+
+ax
+(
+f
+''(0))
+
+
+
+
+
+
+
+a x   f
+ 0 x 1 E0 x  f 
+6  0 x 1 E 0 3 x 3  f
+vf
+ .
+
+(42)
+
+Equation (42) is then rearranged
+1
+
+
+  thnf
+1
+1
+a3
+3
+C f  Re x 2 
+
+f
+''(0)
+
+(
+f
+''(0))
+
+
+
+
+ 0 x 1E0 x f 
+6 0 E03  f v f
+  f
+
+
+where Re x 
+
+uw x
+is the Reynold number. By rearranging equation (43), we obtain
+vf
+
+28
+
+(43)
+
+1
+ thnf
+
+1
+1
+a3
+Re x 2 C f  
+
+f
+''(0)
+
+( f ''(0))3 ,
+
+
+
+1
+3
+ 
+
+
+x
+E
+x
+
+6
+
+E
+
+v
+0
+0
+f 
+0 0
+f
+f
+ f
+
+ thnf
+
+E
+3
+Re x C f  
+ 1  f ''(0)  1 1  f ''(0)  .
+ 
+
+3
+ f
+
+1
+2
+
+3.7
+
+(44)
+
+Transformation of Nusselt number
+
+Equation (30) when y  0 is substituted into equation (15) to gives
+
+q w   k thnf Tw  T  
+
+
+
+a 
+  '(0) .
+v f 
+
+(45)
+
+Substituting equation (45) into equation (14) yields
+ a 
+x(  kthnf ) Tw  T  
+  '(0)
+ vf 
+
+
+.
+Nu x 
+k f Tw  T 
+
+(46)
+
+Equation (46) is then simplified by cancelling out the common factor Tw  T in the
+numerator and denominator,
+ a 
+kthnf x 
+  '(0)
+ vf 
+
+
+Nu x 
+,
+kf
+1
+
+Nu x 
+
+
+1
+
+Re x 2 Nu x 
+
+kthnf Re x 2  '(0)
+kf
+kthnf
+kf
+
+ '(0).
+
+29
+
+,
+
+(47)
+
+3.8
+
+Numerical Method
+
+The set of the ODEs from equation (27) and (34) and the physical parameters, (44) and (47)
+were solved under the influence of boundary conditions using MATLAB’s built-in solver,
+which is the bvp4c. New variables were introduced to convert the higher-order equations into
+the first-order equations.
+
+y (1)  f ,
+y '(1)  y (2)  f ',
+y '(2)  y (3)  f ''
+
+(48)
+
+y (4)   ,
+y '(4)  y (5)   '.
+
+(49)
+
+and
+
+Equation (27) were rearranged and equations (48) was substituted to give
+
+ thnf
+
+Mf ' thnf  f '2  ff '' 
+
+f
+f '''  f
+,
+thnf
+2
+ 1  E11 f ''
+f
+ thnf
+
+My (2)  thnf  y 2 (2)  y (1) y (3) 
+
+f
+f '''  f
+,
+thnf
+2
+ 1  E11 y (2)
+f
+y '(3) 
+
+where A1 
+
+A2 My (2)  A3  y 2 (2)  y (1) y (3) 
+A1  1  E11 y 2 (2)
+
+(50)
+
+thnf
+
+
+, A2  thnf , and A3  thnf . Then, the rearrangement of equation (34) with
+f
+f
+f
+
+ '' as the subject and the substitution of equations (48) and (49) yields
+
+30
+
+  C p 
+
+thnf
+
+ Pr f  '
+
+C p  f 
+
+
+ ''   
+,
+k
+ thnf 
+
+k f 
+
+A Pr y (1) y (5)
+ ''   5
+A4
+
+with A4 
+
+kthnf
+
+and A5 
+
+kf
+
+ C 
+ C 
+
+p thnf
+p
+
+(51)
+
+.
+
+f
+
+Then, the boundary conditions (35) and (38)-(37) were expressed in new terms as follows:
+
+
+ 0
+1
+
+f (0)  S , f '(0)    L1 1  L2 f ''(0)  2  f ''(0)  , (0)  1,
+
+
+1
+
+ya (1)  S , ya(2)    L1 1  L2 ( ya (3)  2  ya(3)  , ya(4)  1 .
+
+
+
+
+(52)
+
+ 
+f '( )  0,  ()  0 ,
+yb(2)  0 , yb(4)  0 .
+
+where ya indicates the values at initial boundary while yb indicates the values at the upper
+boundary for the system
+The set of the ODEs were solved under the influence of boundary conditions using a solver
+under MATLAB which is the function bvp4c. The system was solved using ODE function,
+boundary condition function and initial guess (Shampine & Kierzenka, 2000). The code used
+is where ‘odefun’ is a function that represents the ODEs, ‘bcfun’’ is a function that specifies
+the boundary conditions, ‘solinit’ provides an initial guess for the solution and ‘options’ is the
+optional structure for the solver options such as error control.
+sol = bvp4c(odefun, bcfun, solinit, options);
+After the implementation of the code, the solution was stored in ‘sol’ structure. The MATLAB
+code is provided in the appendix for reference.
+
+31
+
+CHAPTER 4
+RESULTS AND DISCUSSION
+
+4.1
+
+Validation of Results
+
+The validation values of the system obtained when the values of the magnetic parameter
+( M  0 ), slip parameter ( L1  0 ), critical shear rate ( L2  0 ), and the concentration of the
+nanoparticles ( 1  2  3  0 ) are absence which then compared with past results from several
+studies. This is done to ensure the accuracy of the method used. In Table 2, the comparison
+with Javed et al. (2013) of f ''(0) is made with the different values of the Eyring-Powell fluid
+parameter, Table 3, the result for heat transfer (  '(0) ) is compared with Salleh et al. (2010)
+when the Prandtl number varies, while Table 4 show the comparison for the shear rate( f ''(0) )
+for shrinking sheet (   1 ) and several suction, S values. These comparisons show a close
+consistency between the present and past research.
+
+Table 2. A Comparison of f ''(0) and Re x1/ 2 C f with Javed et al. (2013) when Pr  30 ,   1,
+
+M  S  L1  L2  1  2  3  0
+E1
+0.0
+
+0.1
+0.2
+0.3
+
+1
+
+Javed et al. (2013)
+Re x1/ 2 C f
+f ''(0)
+
+Present result
+Re x1/ 2 C f
+f ''(0)
+
+0.0
+0.2
+0.4
+0.6
+0.2
+0.4
+0.6
+0.2
+0.4
+0.6
+0.2
+0.4
+0.6
+
+-1
+-0.9131
+-0.8452
+-0.7906
+-0.9159
+-0.8493
+-0.7950
+-0.9190
+-0.8536
+-0.7997
+-0.9222
+-0.8580
+-0.8045
+
+-1
+-0.9129
+-0.8452
+-0.7906
+-0.9159
+-0.8493
+-0.7950
+-0.9190
+-0.8536
+-0.7997
+-0.9222
+-0.8580
+-0.8045
+
+-1
+-1.0954
+-1.1832
+-1.2649
+-1.0940
+-1.1808
+-1.2620
+-1.0924
+-1.1784
+-1.2590
+-1.0909
+-1.1776
+-1.2560
+
+32
+
+-1
+-1.0954
+-1.1832
+-1.2649
+-1.0940
+-1.1808
+-1.2620
+-1.0924
+-1.1784
+-1.2590
+-1.0909
+-1.1760
+-1.2560
+
+Table 3. Comparison values of  '(0) when
+  1, M  S  E1  1  L1  L2  1  2  3  0 with Salleh et al. (2010) for different Pr
+Salleh et al. (2010)
+
+Pr
+0.72
+1
+3
+5
+7
+10
+100
+
+Present result
+
+ '(0)
+
+0.46317
+0.58198
+1.16522
+1.56806
+1.89548
+2.30821
+7.76249
+
+0.46316
+0.58198
+1.16526
+1.56805
+1.89540
+2.30800
+7.76565
+
+Table 4. Comparison value of f ''(0) with Roşca & Pop (2013) when   1 (shrinking
+sheet) for several values of S
+Roşca & Pop (2013)
+
+Present result
+f ''(0)
+
+S
+2.0
+2.5
+3.0
+
+1.0106
+2.0000
+2.6180
+
+1.0000
+2.0000
+2.6180
+
+In the present study, the effects of magnetic ( M ), velocity slip ( L1 ), critical shear rate
+parameters ( L2 ), and the concentration of nanoparticles ( 1 , 2 , 3 ) on the local skin friction,
+local Nusselt number, velocity profile and temperature profile were obtained and discussed.
+The default value used are S  2.5 and Pr  30 for engine oil-based hybrid nanofluids were
+used as recommended by Yahya et al. (2021) to achieve better accuracy.
+
+4.2
+
+The Effects of Magnetic Parameter on Velocity Problem and Temperature Problem,
+
+Local Skin Friction Coefficient, and Nusselt Number
+
+Figure 6 shows the impact of increasing magnetic parameter to the velocity profile, f '( ) ,
+along
+
+the
+
+shrinking
+
+sheet
+
+(
+
+  1.5
+
+)
+
+for
+
+the
+
+default
+
+value
+
+of
+
+1  2  3  0.1, 1  L1  L2  0.5, and E1  0.8 . As the value of the magnetic parameter
+increases ( M  0, 0.1, 0.2 ), the velocity of the fluid also increases for the first solution in
+contrast of the second solution where the fluid velocity decreases. Then, Figure 7 depicts the
+influence of different values of magnetic parameter on the temperature profile where the rise
+33
+
+of magnetic parameter decreases for the first solution the temperature of the fluid while the
+second solution is increasing. The increase in the fluid velocity due to the presence of Lorentz
+force which enhances the velocity of the fluid, hence increasing the heat transfer between the
+surface and the fluid, leads to a lower temperature.
+Meanwhile in Figure 8 and Figure 9, the effect of the magnetic parameter, M , to local skin
+1
+
+friction coefficient, C f Re x 2 and Nusselt number, Nu Re x
+
+1
+
+2
+
+are displayed respectively. It is
+
+revealed that both the local skin friction coefficient and Nusselt number increases with the
+increase in magnetic parameter. Since the magnetic field increases the velocity of the fluid, the
+heat transfers ability becomes better, hence higher Nusselt number for higher value of magnetic
+parameter. From the figures, it can be observed that the solution exists only when the
+
+  c  1.6446 for M  0 . When the value of the magnetic parameter increases, the range
+for the  also increases such that when M  0.1 (   c  1.9694 ) and M  0.2
+(   c  2.5073 ).
+
+0
+First Solution
+Second Solution
+
+-0.2
+
+-0.4
+
+-0.6
+
+-0.8
+
+-1
+
+-1.2
+
+0
+
+5
+
+10
+
+15
+
+Figure 6. Influence of M on f '( ) .
+34
+
+20
+
+25
+
+First Solution
+Second Solution
+
+0.07
+0.06
+10-3
+
+0.05
+3.55
+
+0.04
+3.5
+
+0.03
+3.45
+
+0.02
+
+0.083
+
+0.0835
+
+0.084
+
+0.0845
+
+0.01
+0
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+Figure 7. Influence of M on  ( ) .
+
+2
+
+First solution
+Second Solution
+
+1.5
+1
+0.5
+0
+-0.5
+-1
+-1.5
+-2
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+Figure 8. Local skin friction coefficient with various values of M .
+35
+
+1
+
+Figure 9. Local Nusselt number with various values of M .
+
+4.3
+
+Effects of Slip Velocity and Critical Shear Rate Parameters on Velocity Problem
+
+and Temperature Problem, Local Skin Friction Coefficient, and Nusselt Number
+
+The impact of different values of velocity slip ( L1 ), critical shear rate parameters ( L2 ) with the
+default value sets to 1  2  3  0.1, M  0.2, 1  0.5, and E1  0.8 . on velocity profile,
+f '( ) can be seen in Figure 10. The velocity of the ternary nanofluid fluid for the first solution
+
+increases with the increase in both slip velocity and critical shear rate parameters while the
+velocity profile for the second solution decreases. When velocity slip parameter is applied
+( L1  0.5 ), there is less friction between the surface and the fluid due to the slip effect while
+the viscosity becomes weaker due to the presence of the critical shear rate parameter
+(
+
+L2  0.5, 0.6 )
+
+which
+
+resulting
+
+in
+
+higher
+
+fluid
+
+velocity.
+
+The
+
+graph
+
+for
+
+L1  L2  0.5 and L1  0.5, L2  0.6 is closer than with the absence of velocity slip and critical
+
+shear rate parameters since there is only a slight difference in L2 . Meanwhile, Figure 11
+36
+
+illustrates that as both slip velocity and critical shear rate parameters increases, the temperature
+profile,  ( ) , decreases for first and second solution. When both of these parameters increase,
+the velocity of the fluid increases, enhancing the heat transfer between the fluid and the surface,
+hence, it has lower temperature profile.
+Figure 12 shows the effect of slip velocity and critical shear rate parameters on the local skin
+1
+
+friction coefficient, C f Re x 2 . When the value of the parameters increases, the local skin
+friction for the first solution decreases when   0 while the second solution increases. From
+the figure, the local skin friction coefficient is slightly higher when there are no slip velocity
+and critical shear rate parameters being applied compared to when the values are
+L1  L2  0.5 and L1  0.5, L2  0.6 . On the other hand, Figure 13 reveals that the Nusselt
+
+number, Nu Re x
+
+1
+
+2
+
+, for both solution rises with increasing slip velocity and critical shear rate
+
+parameters. It is observed dual solution exist during shrinking sheet until c , before the
+separation boundary layer happens.
+
+0
+First Solution
+Second Solution
+
+-0.2
+-0.1
+
+-0.4
+
+-0.15
+
+-0.6
+
+-0.2
+-0.25
+
+-0.8
+
+1
+
+2
+
+3
+
+4
+
+-1
+
+0
+
+5
+
+10
+
+15
+
+20
+
+Figure 10. Influence of L1 and L2 on f '( ) .
+
+37
+
+First Solution
+Second Solution
+
+0.07
+0.06
+2.18
+
+0.05
+
+10-3
+
+2.16
+2.14
+
+0.04
+
+2.12
+
+0.03
+
+2.1
+0.09
+
+0.02
+
+0.091
+
+0.092
+
+0.01
+0
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+Figure 11. Influence of L1 and L2 on  ( ) .
+
+First solution
+Second Solution
+
+2
+1.5
+1
+0.5
+0
+-0.5
+-1
+-1.5
+-2
+-2.5
+-3
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+1
+
+Figure 12. Local skin friction coefficient with various values of L1 and L2 .
+
+38
+
+75.4
+
+First solution
+Second Solution
+
+75.3
+75.2
+75.1
+75
+74.9
+74.8
+74.7
+74.6
+74.5
+74.4
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+1
+
+Figure 13. Local Nusselt number with various values of L1 and L2 .
+
+4.4
+
+Effects of Volume Fraction of Nanoparticles on Velocity Problem and Temperature
+
+Problem, Local Skin Friction Coefficient, and Nusselt Number
+
+The effects of different nanofluids were observed by setting the default value to
+
+1  0.1, M  0.2, 1  L1  L2  0.5, and E1  0.8 . Figure 14 depicts the effects of nanofluid
+( 1  0.01, 2  3  0 ), hybrid nanofluid ( 1  2  0.01, 3  0 ) and ternary nanofluid
+( 1  2  3  0.01 ) to velocity profile where nanofluid has the highest fluid velocity, followed
+by hybrid and ternary nanofluid. This occurs due to the fact that the nanofluid’s viscosity rises
+with an increase of the volume fraction of the nanoparticles which then causes resistance to the
+nanofluid. The increased resistance reduces the fluid velocity. The impacts of the volume
+fraction of nanoparticles on temperature are presented in Figure 15. The rise in the volume
+fraction of nanoparticles increases the temperature profile,  ( ) . It is observed that the
+temperature profile is the lowest for the nanofluid, with hybrid nanofluid slightly higher and
+
+39
+
+ternary nanofluid has the highest temperature profile. This happens because of higher viscosity
+of the fluid promotes frictional heating which raises the temperature.
+1
+
+In Figure 16, it can be observed that the local skin friction, C f Re x 2 , increases when the
+volume fraction of the nanoparticles increases while Figure 17 shows that nanofluid have the
+highest Nusselt number, Nu Re x
+
+1
+
+2
+
+, followed by ternary nanofluid and hybrid nanofluid. Both
+
+figures shows that the solutions exist for both stretching and shrinking sheet cases, while dual
+solution are observed only in shrinking region up to c before the boundary layer become
+unstable. The solution exists when   c such that for the ternary nanofluid
+(   c  2.5072 ), followed by nanofluid (   c  2.9509 ) whereas hybrid nanofluid
+(   c  3.1465 ). Based on the Figure 16, ternary nanofluid has the highest skin friction due
+to its greater viscosity which enhance the resistance on the surface, while in Figure 17,
+Nanofluid exhibits the highest heat transfer performance due to its simpler composition.
+
+0
+First Solution
+Second Solution
+
+-0.2
+
+-0.4
+
+-0.6
+
+-0.8
+
+-1
+
+-1.2
+
+-1.4
+
+0
+
+5
+
+10
+
+15
+
+20
+
+Figure 14. Influence of 1 , 2 and 3 on f '( ) .
+
+40
+
+25
+
+First Solution
+Second Solution
+
+0.06
+
+0.05
+10-3
+
+0.04
+5.5
+
+0.03
+5
+
+0.02
+4.5
+
+0.01
+
+0.07
+
+0.075
+
+0.08
+
+0.2
+
+0.3
+
+0.4
+
+0
+0.1
+
+0.5
+
+0.6
+
+0.7
+
+0.8
+
+Figure 15. Influence of 1 , 2 and 3 on  ( ) .
+
+2
+1.5
+1
+0.5
+0
+-0.5
+-1
+First solution
+Second Solution
+
+-1.5
+-2
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+1
+
+Figure 16. Local skin friction coefficient with various volume concentration of 1 , 2 and 3 .
+
+41
+
+76
+First solution
+Second Solution
+
+75.8
+75.6
+75.4
+75.2
+75
+74.8
+74.6
+74.4
+74.2
+74
+-3.5
+
+-3
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+0
+
+0.5
+
+1
+
+Figure 17. Local Nusselt number with various volume concentration of 1 , 2 and 3 .
+
+42
+
+CHAPTER 5
+CONCLUSION AND RECOMMENDATION
+5.1
+
+Conclusion
+
+In this study, Thomson and Troian slip on magnetohydrodynamic flow of Eyring-Powell
+ternary nanofluid past a shrinking/stretching sheet is considered. The boundary layer problem
+involves the continuity, momentum and energy equations, along with the boundary conditions,
+was transformed into a set of ordinary differential equations using the similarity variables.
+These equations were then solved using the MATLAB’s built-in software, BVP4C solver. The
+impacts of various parameters which are volume fraction of nanoparticle, magnetic, slip
+velocity and critical shear rate parameters on local skin friction, Nusselt number, velocity and
+temperature profile were solved numerically, and the results were illustrated graphically. In
+conclusion, the results are:
+
+
+The velocity profile increases when there is an increase in magnetic, slip velocity,
+critical shear rate, and nanofluid has the highest velocity profile.
+
+
+
+The temperature of the fluid decreases when magnetic, slip velocity, critical shear rate
+parameters increase, and ternary nanofluid has the highest temperature profile.
+
+
+
+The skin friction rises with increasing in magnetic parameters but decreases with higher
+slip velocity, critical shear rate parameter while ternary nanofluid exhibit the highest
+skin friction.
+
+
+
+The Nusselt number is higher when there is an increase in magnetic, slip velocity,
+critical shear rate parameters, and nanofluid has the highest Nusselt number.
+
+
+
+In the graphs of local skin friction coefficient and Nusselt number, dual solution exists
+in the shrinking region until it reaches c , where no solution exists beyond c due to
+the separation of the boundary layer.
+
+5.2
+
+Recommendation
+
+This presents study analyse the impact of magnetic parameter, volume fraction of nanoparticles
+and also in the presence of Thomson and Troian slip condition to the flow of the Eyring-Powell
+ternary nanofluid past both shrinking and stretching sheets. The nanoparticles chosen to be
+43
+
+studied in this research are aluminium alloys (AA7072 and AA7075) and cobalt ferrite
+(CoFe2O4) with engine oil as the base fluid. For future research, exploring different types of
+nanoparticles and how different types of nanoparticles can affect the boundary layer. Then, the
+study can also be extended by considering different parameters such as thermal radiation as it
+would be useful to capture a more complex and realistic scenarios.
+
+44
+
+REFERENCES
+Abbas, Z., Sheikh, M., Hasnain, J., Ayaz, H., & Nadeem, A. (2019). Numerical aspects of
+Thomson and Troian boundary conditions in a Tiwari-Das nanofluid model with
+homogeneous-heterogeneous
+
+reactions.
+
+Physica
+
+Scripta,
+
+94(11).
+
+https://doi.org/10.1088/1402-4896/ab27f0
+Adnan, Ullah Khan, S. I., Khan, U., Ahmed, N., Mohyud-Din, S. T., Khan, I., & Nisar, K. S.
+(2021). Thermal transport investigation in AA7072 and AA7075 aluminum alloys
+nanomaterials based radiative nanofluids by considering the multiple physical flow
+conditions. Scientific Reports, 11(1). https://doi.org/10.1038/s41598-021-87900-w
+Adun, H., Kavaz, D., & Dagbasi, M. (2021). Review of ternary hybrid nanofluid: Synthesis,
+stability, thermophysical properties, heat transfer applications, and environmental effects.
+Journal
+
+of
+
+Cleaner
+
+Production,
+
+328,
+
+129525.
+
+https://doi.org/10.1016/j.jclepro.2021.129525
+Agrawal, R., & Kaswan, P. (2021). MHD Eyring–Powell nanofluid past over an unsteady
+exponentially stretching surface with entropy generation and thermal radiation. Heat
+Transfer, 50(5), 4669–4693. https://doi.org/10.1002/htj.22095
+Ahmad, S., & Nadeem, S. (2020). Flow analysis by Cattaneo–Christov heat flux in the presence
+of Thomson and Troian slip condition. Applied Nanoscience (Switzerland), 10(12), 4673–
+4687. https://doi.org/10.1007/s13204-020-01267-4
+Aich, W., Adnan, Sarfraz, G., Mahjoub Said, N., Bilal, M., Ahmed Elhag, A. F., & Hassan, A.
+M. (2023). Significance of radiated ternary nanofluid for thermal transport in stagnation
+point flow using thermal slip and dissipation function. Case Studies in Thermal
+Engineering, 51. https://doi.org/10.1016/j.csite.2023.103631
+Akaje, T. W., & Olajuwon, B. I. (2021). Impacts of Nonlinear Thermal Radiation on a
+Stagnation Point of an Aligned MHD Casson Nanofluid Flow with Thompson and Troian
+Slip Boundary Condition. Journal of Advanced Research in Experimental Fluid
+Mechanics
+
+and
+
+Heat
+
+Transfer,
+
+http://www.akademiabaru.com/submit/index.php/arefmht
+
+45
+
+6(1),
+
+1–15.
+
+Akram, M., Shahzad, M. H., Ahammad, N. A., Gamaoun, F., Awan, A. U., Hamam, H., &
+Alroobaea, R. (2024). Rheology of Eyring–Powell hybrid nanofluid flow under the
+peristaltic effects through an elliptical conduit: Analytical investigation. Results in Physics,
+59. https://doi.org/10.1016/j.rinp.2024.107602
+Aljabali, A., Abdul R. M. K., Khashi’ie, N. S., Iskandar, W., & Ariffin, N. A. N. (2023). EyringPowell Hybrid Nanofluid with Radiative Heat Flux: Case Over a Shrinking Sheet. Journal
+of Advanced Research in Fluid Mechanics and Thermal Sciences, 111(1), 109–121.
+https://doi.org/10.37934/arfmts.111.1.109121
+Aziz, A., Jamshed, W., Aziz, T., Bahaidarah, H. M. S., & Ur Rehman, K. (2020). Entropy
+analysis of Powell–Eyring hybrid nanofluid including effect of linear thermal radiation
+and viscous dissipation. Journal of Thermal Analysis and Calorimetry, 143(2), 1331–
+1343. https://doi.org/10.1007/s10973-020-10210-2
+Böhme, G. (2012). Non-Newtonian Fluid Mechanics. Elsevier.
+Chalia, S., & Bharti, M. K. (2017). Design and Analysis of Vortex Generator and Dimple over
+an Airfoil Surface to Improve Aircraft Performance. International Journal of Advanced
+Engineering Research and Applications. www.ijaera.org
+Chamsa-ard, W., Brundavanam, S., Fung, C., Fawcett, D., & Poinern, G. (2017). Nanofluid
+Types, Their Synthesis, Properties and Incorporation in Direct Solar Thermal Collectors:
+A Review. Nanomaterials, 7(6), 131. https://doi.org/10.3390/nano7060131
+Chhabra, R. P. (2010). Non-Newtonian Fluids: An Introduction.
+De Vault, D. C., Libby, W. F., Segre, E., Halford, R. S., Seabourg, G. T., Siday, R. E., Mccreary,
+R. L., Valley, G. E., & Williams, E. J. (1939). Grinberg and Rossinow. In Proc. Roy. Soc.
+A (Vol. 55). https://royalsocietypublishing.org/
+Dey, S., Mukhopadhyay, S., & Begum, M. (2022). Stefan flow of nanofluid and heat transport
+over a plate in company of Thompson and Troian slip and uniform shear flow. Forces in
+Mechanics, 9, 100129. https://doi.org/10.1016/j.finmec.2022.100129
+Dey, S., Mukhopadhyay, S., & Mandal, M. S. (2023). Influence of Thompson and Troian slip
+on the nanofluid flow past a permeable plate in porous medium. Pramana - Journal of
+Physics, 97(2). https://doi.org/10.1007/s12043-023-02539-8
+
+46
+
+Fatunmbi, E. O., Ogunseye, H. A., & Sibanda, P. (2020). Magnetohydrodynamic micropolar
+fluid flow in a porous medium with multiple slip conditions. International
+Communications
+
+in
+
+Heat
+
+and
+
+Mass
+
+Transfer,
+
+115.
+
+https://doi.org/10.1016/j.icheatmasstransfer.2020.104577
+Hayat, T., Iqbal, Z., Qasim, M., & Obaidat, S. (2012). Steady flow of an Eyring Powell fluid
+over a moving surface with convective boundary conditions. International Journal of
+Heat
+
+and
+
+Mass
+
+Transfer,
+
+55(7–8),
+
+1817–1822.
+
+https://doi.org/10.1016/j.ijheatmasstransfer.2011.10.046
+Hayat, T., Iqbal, Z., Qasim, M., & Alsaedi, A. (2013). Flow of an Eyring-Powell Fluid with
+Convective
+
+Boundary
+
+Conditions.
+
+Journal
+
+of
+
+Mechanics,
+
+29(2),
+
+217–224.
+
+https://doi.org/10.1017/jmech.2012.135
+Hayat, T., Ashraf, B., Shehzad, S. A., & Abouelmagd, E. (2015). Three-dimensional flow of
+Eyring Powell nanofluid over an exponentially stretching sheet. International Journal of
+Numerical Methods for Heat & Fluid Flow, 25(3), 593–616. https://doi.org/10.1108/HFF05-2014-0118
+Hayat, T., & Nadeem, S. (2017). Heat transfer enhancement with Ag–CuO/water hybrid
+nanofluid. Results in Physics, 7, 2317–2324. https://doi.org/10.1016/j.rinp.2017.06.034
+Hussain, Z., Aljuaydi, F., Ayaz, M., & Islam, S. (2024). Enhancing thermal efficiency in MHD
+kerosene oil-based ternary hybrid nanofluid flow over a stretching sheet with convective
+boundary
+
+conditions.
+
+Results
+
+in
+
+Engineering,
+
+22,
+
+102151.
+
+https://doi.org/10.1016/j.rineng.2024.102151
+Ibrahim, W., & Tulu, A. (2019). Magnetohydrodynamic (MHD) Boundary Layer Flow Past a
+Wedge with Heat Transfer and Viscous Effects of Nanofluid Embedded in Porous Media.
+Mathematical Problems in Engineering, 2019(1). https://doi.org/10.1155/2019/4507852
+Ishak, A. (2011). MHD Boundary Layer Flow Due to an Exponentially Stretching Sheet with
+Radiation Effect.
+Ishaq, M., Ali, G., Shah, Z., Islam, S., & Muhammad, S. (2018). Entropy Generation on
+Nanofluid Thin Film Flow of Eyring–Powell Fluid with Thermal Radiation and MHD
+Effect
+
+on
+
+an
+
+Unsteady
+
+Porous
+
+Stretching
+
+https://doi.org/10.3390/e20060412
+47
+
+Sheet.
+
+Entropy,
+
+20(6),
+
+412.
+
+Javed, T., Ali, N., Abbas, Z., & Sajid, M. (2013). Flow of an eyring-powell non-newtonian fluid
+over a stretching sheet. Chemical Engineering Communications, 200(3), 327–336.
+https://doi.org/10.1080/00986445.2012.703151
+Karthikeyan, S., Ali, F., Loganathan, K., & Thamaraikannan, N. (2024). An implication of
+entropy generation in Maxwell fluid containing engine oil based ternary hybrid nanofluid
+over
+
+a
+
+riga
+
+plate.
+
+Journal
+
+of
+
+Taibah
+
+University
+
+for
+
+Science,
+
+18(1).
+
+https://doi.org/10.1080/16583655.2024.2387925
+Khan, S. A., Hayat, T., & Alsaedi, A. (2023). KHA model comprising MoS4 and CoFe2O3 in
+engine oil invoking non-similar Darcy-Forchheimer flow with entropy and CattaneoChristov
+
+heat
+
+flux.
+
+Nanoscale
+
+Advances,
+
+5(22),
+
+6135–6147.
+
+https://doi.org/10.1039/d3na00441d
+Kumar, B., & Srinivas, S. (2020). Unsteady hydromagnetic flow of eyring-powell nanofluid
+over an inclined permeable stretching sheet with Joule Heating and thermal radiation.
+Journal
+
+of
+
+Applied
+
+and
+
+Computational
+
+Mechanics,
+
+6(2),
+
+259–270.
+
+https://doi.org/10.22055/JACM.2019.29520.1608
+Kundu, P. K., Cohen, I. M., & Dowling, D. R. (2016). Fluid Mechanics (Sixth Edition). Elsevier.
+Li, S., Puneeth, V., Saeed, A. M., Singhal, A., Al-Yarimi, F. A. M., Khan, M. I., & Eldin, S. M.
+(2023). Analysis of the Thomson and Troian velocity slip for the flow of ternary nanofluid
+past a stretching sheet. Scientific Reports, 13(1). https://doi.org/10.1038/s41598-02329485-0
+Lund, L. A., Omar, Z., Khan, I., & Sherif, E. S. M. (2020). Dual solutions and stability analysis
+of a hybrid nanofluid over a stretching/shrinking sheet executing MHD flow. Symmetry,
+12(2). https://doi.org/10.3390/sym12020276
+Manjunatha, S., Puneeth, V., Gireesha, B. J., & Chamkha, A. J. (2022). Theoretical Study of
+Convective Heat Transfer in Ternary Nanofluid Flowing past a Stretching Sheet. Journal
+of
+
+Applied
+
+and
+
+Computational
+
+Mechanics,
+
+8(4),
+
+1279–1286.
+
+https://doi.org/10.22055/JACM.2021.37698.3067
+Mishra, A. (2024). Significance of Thompson and Troian slip effects on Fe3O4-CoFe2O4
+ethylene glycol-water hybrid nanofluid flow over a permeable plate. Hybrid Advances, 6,
+100262. https://doi.org/10.1016/j.hybadv.2024.100262
+48
+
+Mwamba, N. (2024). Powell-Eyring Nanofluid Flow over a Stretching Sheet. Applied and
+Computational
+
+Mathematics,
+
+13(5),
+
+153–164.
+
+https://doi.org/10.11648/j.acm.20241305.14
+Naseem, T., Bibi, I., Shahzad, A., & Munir, M. (2023). Analysis of Heat Transport in a PowellEyring Fluid with Radiation and Joule Heating Effects via a Similarity Transformation.
+Fluid
+
+Dynamics
+
+and
+
+Materials
+
+Processing,
+
+19(3),
+
+663–677.
+
+https://doi.org/10.32604/fdmp.2022.021136
+Oke, A. S., & Mutuku, W. N. (2021). Significance of viscous dissipation on MHD Eyring–
+Powell flow past a convectively heated stretching sheet. Pramana, 95(4), 199.
+https://doi.org/10.1007/s12043-021-02237-3
+Pal, D., & Mondal, S. K. (2022). Magneto-bioconvection of Powell Eyring nanofluid over a
+permeable vertical stretching sheet due to gyrotactic microorganisms in the presence of
+nonlinear thermal radiation and Joule heating. International Journal of Ambient Energy,
+43(1), 924–935. https://doi.org/10.1080/01430750.2019.1679253
+Patel, M., & Timol, M. G. (2009). Numerical treatment of Powell–Eyring fluid flow using
+Method of Satisfaction of Asymptotic Boundary Conditions (MSABC). Applied
+Numerical
+
+Mathematics,
+
+59(10),
+
+2584–2592.
+
+https://doi.org/10.1016/j.apnum.2009.04.010
+Qasim, M., Ali, Z., Wakif, A., & Boulahia, Z. (2019). Numerical Simulation of MHD Peristaltic
+Flow with Variable Electrical Conductivity and Joule Dissipation Using Generalized
+Differential Quadrature Method. Communications in Theoretical Physics, 71(5), 509–518.
+https://doi.org/10.1088/0253-6102/71/5/509
+Rahimi, J., Ganji, D. D., Khaki, M., & Hosseinzadeh, K. (2017). Solution of the boundary layer
+flow of an Eyring-Powell non-Newtonian fluid over a linear stretching sheet by
+collocation
+
+method.
+
+Alexandria
+
+Engineering
+
+Journal,
+
+56(4),
+
+621–627.
+
+https://doi.org/10.1016/j.aej.2016.11.006
+Ramireddy, P., & Lakshmi, K. J. (2024). Thermally Stratified Flow of Powell Eyring Hybrid
+Nanofluid with Joule Heating Over a Porous Stretching Sheet. JP Journal of Heat and
+Mass Transfer, 37(6), 759–789. https://doi.org/10.17654/0973576324048
+
+49
+
+Ramzan, M., Chung, J. D., Kadry, S., Chu, Y. M., & Akhtar, M. (2020). Nanofluid flow
+containing carbon nanotubes with quartic autocatalytic chemical reaction and Thompson
+and Troian slip at the boundary. Scientific Reports, 10(1). https://doi.org/10.1038/s41598020-74855-7
+Rashad, A. M., Nafe, M. A., & Eisa, D. A. (2023). Heat Generation and Thermal Radiation
+Impacts on Flow of Magnetic Eyring–Powell Hybrid Nanofluid in a Porous Medium.
+Arabian
+
+Journal
+
+for
+
+Science
+
+and
+
+Engineering,
+
+48(1),
+
+939–952.
+
+https://doi.org/10.1007/s13369-022-07210-9
+Raza, J. (2019). Thermal radiation and slip effects on magnetohydrodynamic (MHD)
+stagnation point flow of Casson fluid over a convective stretching sheet. Propulsion and
+Power Research, 8(2), 138–146. https://doi.org/10.1016/j.jppr.2019.01.004
+Roşca, A. V., & Pop, I. (2013). Flow and heat transfer over a vertical permeable
+stretching/shrinking sheet with a second order slip. International Journal of Heat and Mass
+Transfer, 60(1), 355–364. https://doi.org/10.1016/j.ijheatmasstransfer.2012.12.028
+Saidur, R., Leong, K. Y., & Mohammed, H. A. (2011). A review on applications and challenges
+of nanofluids. Renewable and Sustainable Energy Reviews, 15(3), 1646–1668.
+https://doi.org/10.1016/j.rser.2010.11.035
+Salleh, M. Z., Nazar, R., & Pop, I. (2010). Boundary layer flow and heat transfer over a
+stretching sheet with Newtonian heating. Journal of the Taiwan Institute of Chemical
+Engineers, 41(6), 651–655. https://doi.org/10.1016/j.jtice.2010.01.013
+Schlichting, H., & Gersten, K. (2016). Boundary-Layer Theory. In Boundary-Layer Theory.
+Springer Berlin Heidelberg. https://doi.org/10.1007/978-3-662-52919-5
+Shampine, L. F., & Kierzenka, J. (2000). Solving Boundary Value Problems for Ordinary
+Differential Equations in MATLAB with bvp4c.
+Sheikholeslami, M., & Ganji, D. D. (2016). Magnetohydrodynamic and ferrohydrodynamic. In
+External Magnetic Field Effects on Hydrothermal Treatment of Nanofluid (pp. 1–47).
+Elsevier. https://doi.org/10.1016/B978-0-323-43138-5.00001-X
+Sher Akbar, N., Ebaid, A., & Khan, Z. H. (2015). Numerical analysis of magnetic field effects
+on Eyring-Powell fluid flow towards a stretching sheet. Journal of Magnetism and
+Magnetic Materials, 382, 355–358. https://doi.org/10.1016/j.jmmm.2015.01.088
+50
+
+Simpson, R. L. (1989). Turbulent Boundary-layer Separation. In Ann. Rev. Fluid Mech (Vol.
+21). www.annualreviews.org
+Singh, B., Sood, S., Thakur, A., & Chandel, S. (2024). Numerical analysis of mixed convection
+and Thomson-Troian slip effects on ternary nanofluid flow and heat transfer over a
+stretching sheet with porous media: Darcy-Forchheimer model. Applied and
+Computational Mechanics, 18(2). https://doi.org/10.24132/acm.2024.894
+Smith, F. T. (1986). Steady and Unsteady Boundary-Layer Separation. Annual Review of Fluid
+Mechanics, 18(1), 197–220. https://doi.org/10.1146/annurev.fl.18.010186.001213
+Sochi, T. (2011). Slip at Fluid-Solid Interface. https://doi.org/10.1080/15583724.2011.615961
+Ullah, H., Khan, I., Fiza, M., Hamadneh, N. N., Fayz-Al-Asad, M., Islam, S., Khan, I., Raja,
+M. A. Z., & Shoaib, M. (2021). MHD Boundary Layer Flow over a Stretching Sheet: A
+New Stochastic Method. In Mathematical Problems in Engineering (Vol. 2021). Hindawi
+Limited. https://doi.org/10.1155/2021/9924593
+Uthe, B., Sader, J. E., & Pelton, M. (2022). Optical measurement of the picosecond fluid
+mechanics in simple liquids generated by vibrating nanoparticles: a review. Reports on
+Progress in Physics, 85(10), 103001. https://doi.org/10.1088/1361-6633/ac8e82
+Yahya, A. U., Salamat, N., Huang, W. H., Siddique, I., Abdal, S., & Hussain, S. (2021). Thermal
+charactristics for the flow of Williamson hybrid nanofluid (MoS2 + ZnO) based with
+engine oil over a streched sheet. Case Studies in Thermal Engineering, 26.
+https://doi.org/10.1016/j.csite.2021.101196
+Zheng, L., & Zhang, X. (2017). Modeling and Analysis of Modern Fluid Problems. In Modeling
+and
+
+Analysis
+
+of
+
+Modern
+
+Fluid
+
+Problems
+
+https://doi.org/10.1016/B978-0-12-811753-8.00001-3
+
+51
+
+(pp.
+
+1–37).
+
+Elsevier.
+
+APPENDICES
+MATLAB coding
+
+52
+
+53
+
+54
+
+

@@ -1,0 +1,559 @@
+--- PAGE 1 ---
+Implementation of an Adaptive BDF2 Formula and
+Comparison with the MATLAB Ode15s
+E. Alberdi Celaya1, J. J. Anza Aguirrezabala2, and P. Chatzipantelidis3
+1Department of Applied Mathematics, University of the Basque Country UPV/EHU, Bilbao, Spain
+elisabete.alberdi@ehu.es
+2Department of Applied Mathematics, University of the Basque Country UPV/EHU, Bilbao, Spain
+juanjose.anza@ehu.es
+3Department of Mathematics, University of Crete, Heraklion-Crete, Greece
+chatzipa@math.uoc.gr
+Abstract
+After applying the Finite Element Method (FEM) to the diﬀusion-type and wave-type
+Partial Diﬀerential Equations (PDEs), a ﬁrst order and a second order Ordinary Diﬀeren-
+tial Equation (ODE) systems are obtained respectively. These ODE systems usually presenthigh stiﬀness, so numerical methods with good stability properties are required in their reso-lution. MATLAB oﬀers a set of open source adaptive step functions for solving ODEs. Oneof these functions is the ode15srecommended to solve stiﬀ problems and which is based on
+the Backward Diﬀerentiation Formulae (BDF). We describe the error estimation and the stepsize control implemented in this function. The ode15sis a variable order algorithm, and even
+though it has an adaptive step size implementation, the advancing formula and the local errorestimation that uses correspond to the constant step size formula. We have focused on thesecond order accurate and unconditionally stable BDF (BDF2) and we have implemented areal adaptive step size BDF2 algorithm using the same strategy as the BDF2 implemented intheode15s, resulting the new algorithm more eﬃcient than the one implemented in MATLAB.
+Keywords: PDEs, stiﬀ ODEs, Backward Diﬀerentiation Formula, adaptive BDF2
+1 Introduction
+Numerous phenomena of science and engineering are modelled mathematically using systems of
+Partial Diﬀerential Equations (PDEs). Mass, momentum and energy balances, with appropri-ate constitutive laws are the basis of a broad class of Boundary Condition (BC) problems fromwhich the macroscopic movement of solids, ﬂuids and gases with their corresponding forcescan be deduced. Similarly, ﬂow solutions for heat and mass transport problems can be ob-tained, and interaction problems between diﬀerent media (mechanical, thermal, chemical, orelectromagnetic) can be studied.
+Procedia Computer Science
+Volume 29, 2014, Pages 1014–1026
+ICCS 2014. 14th International Conference on Computational Science
+1014 Selection and peer-review under responsibility of the Scientiﬁc Programme Committee of ICCS 2014
+c/circlecopyrtThe Authors. Published by Elsevier B.V.
+doi: 10.1016/j.procs.2014.05.091 
+--- PAGE 2 ---
+The mathematical modelling of the continuous media by means of diﬀerential equations
+shows the existing relationship between diﬀerent applications which lead to similar boundary
+value problems. For example, the Laplace generalized PDE, which represents the behaviour ofmany stationary problems, is given by:
+∇·⎡
+⎣−C∇u/bracehtipupleft
+/bracehtipdownright/bracehtipdownleft/bracehtipupright
+Conductive flux+ Du/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+Convectiveflux⎤⎦+Eu/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+Absortion=f/bracehtipupleft/bracehtipdownright/bracehtipdownleft/bracehtipupright
+Source(1)
+whereCandEare physical constants and Da vector that depends on the problem. This is the
+case
+of the heat transfer problem where the unknown function u(x) represents the temperature.
+If
+the convective and absorbing terms are not considered, the Laplace-Poisson PDE is obtained:
+∇·(−C∇u)=f (2)
+Equation
+(2) governs the potential problem, which has many applications such as the ﬂux
+of an incompressible and non-viscous ﬂuid, the torsion of a proﬁle of any section, the simple
+heat conduction or the mass diﬀusion without convection. All these examples are stationarybut it is enough to add an additional source term related to the inertia to time change to extendany of these models to the general transient case, with Initial Conditions (IC) and BoundaryConditions (BC). The simplest representative cases are the diﬀusion and the wave equation.The latter is obtained by taking f=−G·u
+tt(x,t):
+∇·C∇u(x,t)=G·utt(x,t)→Δu=G
+Cutt (3)
+If the unknown function u(x,t) represents the transverse displacement of a stretched string
+with a force T(C=T) and density ρ(G=ρ), the PDE governs the transverse vibrations of
+the
+elastic string.
+The analytical solution of PDEs in a general domain is not possible and it is necessary the
+use of numerical methods, being the Finite Element Method (FEM) the most capable in general
+todealwithanyshapedomains. AfterapplyingtheFiniteElementMethodtothediﬀusion-typeand wave-type PDEs with boundary conditions and initial conditions, a ﬁrst order and a second
+order Ordinary Diﬀerential Equation (ODE) systems are obtained respectively. The process toobtain approximate solutions of these problems using the FEM, consists of discretizing thedomain in elements and nodes. The solution approach is based on the elimination of the spatial
+derivatives of the PDE and this leads to a system of ODEs.
+The ODE system that results after the FEM discretization presents high stiﬀness, which
+means that the greater the ratio of the eigenvalues of the Jacobian matrix, the more stiﬀ the
+system of ODEs [5, 7, 11]. This means that a non-signiﬁcant part of the solution requires verysmall step sizes to avoid instability of the whole solution. When we are solving systems of stiﬀODEs by numerical integration, it is important to use an accurate algorithm with good stabilityproperties. Since they were introduced, the Backward Diﬀerentiation Formulae (BDF) [4] havebeen widely used due to their good stability properties.
+The software package MATLAB oﬀers a set of codes to solve initial value problems [10, 12]:
+y
+/prime(t)=f(t,y(t)),y(t0)=y0 (4)
+onaﬁnitetimeinterval T=[t0,tn]. Someoftheseodesolversarerecommendedtosolvenonstiﬀ
+problems. This is the case of the two explicit Runge-Kutta codes implemented in MATLAB:
+theode23which is based on the Bogacki-Shampine 3(2) pair [1] and the ode45based on theImplementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1015
+--- PAGE 3 ---
+Dormand Prince (5,4) pair [3]. The ode113is another nonstiﬀ ode solver, which is a PECE
+implementation of the Adams Bashforth-Moulton methods [14].
+For stiﬀ problems, the most popular code implemented in MATLAB is the ode15swhich
+uses the Backward Diﬀerentiation Formulae (BDF) [4] and the Numerical Diﬀerentiation For-
+mulae (NDF) [15]. This paper studies the algorithm that supports the ode15s: the underlying
+methods, the local error estimation and the adaptation of the step size to verify the speciﬁed
+error tolerance. The ode15sis a variable order and variable step size algorithm, although it uses
+an advancing formula and a local error estimation of the constant step size formula. We havefocused on the second order accurate BDF (BDF2), which is A-stable. We have implemented areal adaptive step size BDF2 algorithm using the same strategy as the BDF2 implemented intheode15s, resulting the one implemented by us more eﬃcient.
+The article is organized as follows: characteristics of the ode15shave been studied in Section
+2. In Section 3 the implementation of the variable step size new BDF2 is explained. In Section4 some examples are solved and the number of steps given and the errors obtained are analysed.Finally, some conclusions are presented in Section 5.
+2 The Ode Solver Ode15s
+The ode15sis based on the BDF methods [4], and it is possible to use the BDFs of orders
+1−5. The ﬁnal “s ”o ft h eo de15s indicates that the algorithm is suggested to solve stiﬀ
+diﬀerential equations [13]. By default ode15suses NDF methods [15] which based on BDF
+methods, anticipate a backward diﬀerence of order ( k+1) when working in order k.T h i st e r m
+has
+a positive eﬀect on the local truncation error, making the NDFs more accurate than the
+BDFs and not much less stable, see Table 1. This implies that the NDF2 can achieve the sameaccuracy as the BDF2 with a step size 26% bigger. This modiﬁcation was proposed for orders
+k=1,2,3,4, because it is ineﬃcient for orders greater than 4.
+The
+code always starts solving in order k= 1, and the maximum order to be reached can be
+giv
+en to the code as data. Assuming that the values yn+1,yn+2, ...,yn+k−1are available, which
+are the approximations to the exact solution at the points tn+h,tn+2h, ...,tn+(k−1)h,t h e
+BDFs
+and NDFs compute the value yn+k≈y(tn+k) using the following expressions:
+•BDFs:/summationtextk
+j=11
+j∇jyn+k=hfn+k.
+•NDFs:/summationtextkj=11
+j∇jyn+k=hfn+k+κγk∇k+1yn+k.
+beingfn+k=f(tn+k,yn+k)a n dγ k=/summationtextk
+j=11
+j.
+kκ%step size A(α )o fB D F s A ( α)o fN D F s
+1 -0.1850 26% 90◦90◦
+2 -1/9 26% 90◦90◦
+3 -0.0823 26% 86◦80◦
+4 -0.0415 12% 73◦66◦
+Table 1: NDFs of Klopfenstein and Shampine: eﬃciency and stability with respect to BDFs.
+In [15] an alternative form to write the left-hand side of these two expressions is given, whichImplementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1016
+--- PAGE 4 ---
+is the same for both cases:
+k/summationdisplay
+j=11
+j∇jyn+k=γk/parenleftBig
+yn+k−y(0)
+n+k/parenrightBig
++k/summationdisplay
+j=1γj∇jyn+k−1 (5)
+where:⎧
+⎪⎨
+⎪⎩γj=/summationtextj
+l=11
+l
+y(0)
+n+k=/summationtextkj=0∇jyn+k−1=∇0yn+k−1+∇yn+k−1+...+∇kyn+k−1
+yn+k−y(0)
+n+k=∇k+1yn+k(6)
+Taking into account expression (5) the NDFs can be written as follows:
+(1−κ)γk/parenleftBig
+yn+k−y(0)
+n+k/parenrightBig
++k/summationdisplay
+j=1γj∇jyn+k−1=hfn+k (7)
+where the values of κare in the Table 1. BDF methods are obtained for κ=0 .
+2.1 Error Estimation in the Ode15s
+The ode15suses the local truncation error as the error estimation:
+est≈LTE=Chk+1yk+1(tn)+O/parenleftbig
+hk+2/parenrightbig
+(8)
+be
+ingCthe error constant of the method and kthe order of the BDF or NDF formula in which
+theo
+de15sis solving.
+Backward diﬀerences are used to calculate an approximation of yk+1(tn). An approximation
+ofy(t) is obtained by using the backward interpolating polynomial of Newton that passes from
+the
+(k+2) points {(tn+i,yn+i)}fori=−1,0,1,2,...,k:
+y(t)≈Q(t)=yn+k+k+1/summationdisplay
+j=1∇jyn+k1
+j!hjj−1/productdisplay
+m=0(t−tn+k−m)( 9)
+And the (k +1)th derivative of expression (9) is calculated:
+Q(k+1)(t)=∇k+1yn+k1
+(k+1)!hk+1(k+1)!=∇k+1yn+k1
+hk+1(10)
+Obtaining:
+y(k+1)(t)≈Q(k+1)(t)=∇k+1yn+k1
+hk+1(11)
+Substituting the approximation (11) in (8), the error estimation of the ode15sin terms of
+backward diﬀerences is obtained:
+LTE≈C·∇k+1yn+k=est (12)Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1017
+--- PAGE 5 ---
+2.2 Step Size Control in the Ode15s
+The ﬁrst step size can be given to the code as data [6]. Nevertheless, a failed step is easily
+repaired by the control of the step of the algorithm. Alternatively the ode15scan automatically
+set a trial ﬁrst step size.
+The ode15sis not allowed to change either the order or the step size until a minimum of
+(k+2) consecutive steps are given using the same order formula and the same step size. If one
+step
+is unsuccessful, the order of the method or the step size are reduced. When the compulsory
+(k+2) successful steps are given, it is possible to change the order and the step size. In this
+case,
+the step sizes which correspond to orders ( k−1) (fork>1),kand (k+1) (whenever the
+maxim
+um order deﬁned has not been reached) are calculated.
+After advancing from tn−1totnwith step size husing the k-order BDF/NDF formula, the
+lo
+cal error estimation of the ode15sis:
+est≈LTE=hk+1φ(tn)+O(hk+2) (13)
+We will suppose that we have just given a step using a step size hand that we are interested
+in
+calculating the next step size which corresponds to order k. This step size could be a new step
+or
+the repetition of the previous step because it has not been veriﬁed the tolerance requirement.
+In both cases, the next step size is calculated by multiplying the previous step size by a constant
+σ. Hence, the next step size will be (σ ·h) and the local error will be [13]:
+(σ·h)k+1φ(tn+1)+O/parenleftbig
+(σh)k+2/parenrightbig
+(14)
+By
+making use of Taylor’s developments:
+φ(tn+1)=φ(tn)+hφ/prime(tn)+O/parenleftbig
+h2/parenrightbig
+(15)
+Expression
+(14) turns into:
+(σ·h)k+1φ(tn+1)+O/parenleftbig
+(σh)k+2/parenrightbig
+=σk+1hk+1φ(tn)+O/parenleftbig
+hk+2/parenrightbig
+=σk+1est+O/parenleftbig
+hk+2/parenrightbig(16)
+Expression
+(16) gives the local error made with a step size ( σ·h). The largest step size that
+will
+pass the error test is calculated by chosing σso thatσk+1/bardblest/bardbl≈Rt ol is veriﬁed, where
+Rtolis the speciﬁed tolerance. This step size is:
+σ·h=/parenleftbiggRtol
+/bardblest/bardbl/parenrightbigg1/k+1
+·h (17)
+Because
+a failed step is expensive, the codes use a fraction of the predicted step. The ode15s
+uses a safety factor FS=5
+6and the new step size for order kis:
+hk=F·h (18)
+whereF=FS·σ. A new variable zis deﬁned as follows:
+z=1.2/parenleftbigg/bardblest/bardbl
+Rtol/parenrightbigg1/(k +1)
+(19)
+Taking into account (19) the factor F=1/zrepresen ts the hyperbola of Figure 1. Two regions
+can be clearly distinguished, separated by /bardblest/bardbl=Rtol,w h e r e zS=1.2 is veriﬁed. In this
+case,
+the factor Ftakes the value of the safety factor: FS=5
+6. For a trial step h,t h e o de15sImplementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1018
+--- PAGE 6 ---
+zSFU
+FLFS
+zU zLzF
+failed step successful
+step
+Figure 1: The factor Fas function of the variable z.
+computes the values of /bardblest/bardblandz, and the step is considered successful if z≤zS=1.2i s
+v
+eriﬁed.
+When the given step is successful, that is to say z∈[0,1.2], or equivalently F∈/bracketleftbig5
+6,∞/parenrightbig
+,a n
+upp
+er threshold FU= 10 is established and the step size of the k-order method is deﬁned as:
+hk=/braceleftBigg
+FU·h, z≤zU
+F·h, z S<z≤zU(20)
+whereFU= 10,zU=1
+FU=0.1a n dzS=1.2.
+In
+a similar way, the step sizes hk−1andhk+1w h i c hc o r r e s p o n dt ot h em e t h o d so fo r d e r s
+(k−1) and (k +1) are calculated, being the safety factors10
+13and10
+14respectively. The error
+estimations of the methods of order (k −1) and (k+1) are calculated, /bardblestk−1/bardbland/bardblestk+1/bardbl.
+And the actual step size is multiplied by the factors Fk−1=1
+zk−1andFk+1=1
+zk+1respectively:
+zk−1=1.3·/parenleftbigg/bardblestk−1/bardbl
+Rtol/parenrightbigg1/k
+,zk+1=1.4·/parenleftbigg/bardblestk+1/bardbl
+Rtol/parenrightbigg1/(k +2)
+(21)
+The step sizes hk−1andhk+1are deﬁned as follows, being the upper thresholds Fk−1,U=1 0
+andFk+1,U= 10:
+hk−1=/braceleftBigg
+Fk−1,U·h, zk−1≤zk−1,U
+Fk−1·h, z k−1,S<zk−1≤zk−1,U(22)
+hk+1=/braceleftBigg
+Fk+1,U·h, zk+1≤zk+1,U
+Fk+1·h, z k+1,S<zk+1≤zk+1,U(23)
+wherezk−1,U=0.1,zk−1,S=1.3,zk+1,U=0.1a n dzk+1,S=1.4.
+When
+the step sizes hk,hk−1andhk+1are available, the process that the ode15sfollows to
+set the next step size is this one:Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1019
+--- PAGE 7 ---
+1. Ifhk−1>hkis veriﬁed, the following assignments are made: hnew=hk−1andknew=
+k−1. Ifhk−1>hkis not veriﬁed, hnew=hkandknew=kare considered.
+2.
+Next,hk+1andhneware compared. If hk+1>hnew,t h ev a l u e hk+1is stored in hnewand
+one unit is added to the order knew.
+3. Finally, the value hnewis compared with the step size hused in the last step. If hnew>h,
+the next step size will be hnewand it will be given with order knew. If not, the order and
+the step size of the last step are maintained.
+When the given step is unsuccessful, the step is repeated. The step size of the k-order
+form
+ula is calculated using a lower threshold FL=0.1 as follows:
+hk=/braceleftBigg
+F·h, z S<z≤zL
+FL·h, z > z L(24)
+wherezL=1
+FL=1 0a n d zS=1.2 as before.
+Whenk>1,
+the step size for order ( k−1) is also calculated as:
+hk−1=/braceleftBigg
+Fk−1·h, z k−1,S<zk−1≤zk−1,L
+Fk−1,L·h, zk−1>zk−1,L(25)
+whereFk−1,L=0.1,zk−1,L=1
+Fk−1,L=1 0a n d zk−1,S=1.3 as before.
+Ifhk−1>hk, the next step will be given using the (k −1)-order formula and the step size
+will
+be the minimum value between the present step handhk−1.
+In second or posterior trials after an unsuccessful step, the new step size is calulated by
+dividing
+by 2 the actual step.
+3 Adaptive step size BDF2
+Even though the ode15schanges the step size depending on the local error estimation, the
+advancing formula that uses for the BDFs or NDFs is the constant step size formula. We will
+focus on the second order accurate and unconditionally stable BDF2. The advancing formulaused by the ode15sfor this method is:
+3
+2yn+2−2yn+1+1
+2yn=hfn+2 (26)
+which is the constant step size formula. And the same happens with the expression used toapproximate the local truncation error (12).
+Nevertheless, the advancing formula of the adaptive step size BDF2 is given by the next
+expression [6]:
+y
+n+2−(1+wn+1)2
+1+2wn+1yn+1+w2
+n+1
+1+2wn+1yn=hn+21+wn+1
+1+2wn+1fn+2 (27)
+beingwn+1=hn+2/hn+1,hn+2=tn+2−tn+1andhn+1=tn+1−tn.
+Taking into account the adaptive advancing formula of the BDF2, the local truncation error
+of
+the adaptive step size BDF2 becomes:
+LTE=y(tn+2)−yn+2≈h2
+n+2(hn+1+hn+2)
+6y(3)(tn+2) (28)Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1020
+--- PAGE 8 ---
+Approximating the third derivative of (28) by:
+y(3)(tn+2)≈1
+h2
+n+2/bracketleftbiggyn+2−yn+1
+hn+2−/parenleftbigg
+1+hn+2
+hn+1/parenrightbiggyn+1−yn
+hn+1+hn+2
+hn+1hn(yn−yn−1)/bracketrightbigg
+(29)
+and
+substituting (29) in (28), the expression of the local truncation error of the adaptive step
+size BDF2 is obtained:
+LTE≈(hn+1+hn+2)
+6/bracketleftbiggyn+2−yn+1
+hn+2−/parenleftbigg
+1+hn+2
+hn+1/parenrightbiggyn+1−yn
+hn+1+hn+2
+hn+1hn(yn−yn−1)/bracketrightbigg
+(30)
+be
+inghn=tn−tn−1.
+4 Numerical Results
+In this section some problems are solved using the BDF2 in two diﬀerent ways:
+•Case A: The advancing formula (26) and the local truncation error (12) of the constant
+step
+size BDF2 have been implemented. This is the way in which the ode15soperates
+but it also changes the order of the method. In this case the order is ﬁxed: k=2 .T h e
+same
+criterion used in the ode15sto change the step size depending on the local error
+estimation has been implemented: the step size that follows a successful step is calculatedusing (20) and the failed steps are repeated by dividing the step size by 2.
+•Case B: The adaptive advancing formula (27) and the adaptive local truncation error (30)of
+the BDF2 are implemented. The new step size is deﬁned depending on the local error
+estimation, in the same way as in the Case A.
+Theinitializationofbothalgorithms(CaseAandB)hasbeendoneinthesameway. Theuse
+of the local truncation error as the local error control requires three previous values, yn−1,yn,
+yn+1. Hence, two additional values are required in the beginning, which have been calculated
+by the trapezoidal rule. In both cases, the ﬁrst step size h0has been taken as:
+h0=T
+stepsode15s(31)
+beingTt h et i m ei n t e r v a la n dsteps ode15sthe number of steps given by the ode15swhen solving
+the same problem. The second step size h1has been given using the same value as h0.
+4.1 Example 1
+Consider the problem [16]:
+y/prime(t)=λ(y(t)−g(t))+g/prime(t),T=[ 0 ,2.5],y(0) = 1 (32)
+beingλ=−106andg(t)=s i n ( 1 0 t)+t. Its exact solution is given by:
+y(t)=eλt+g(t) (33)
+In
+Table 2 the number of steps given by each algorithm when diﬀerent values of Rtolare
+considered are tabulated. The number of steps given by the ode15sis also included. We can
+observe that the algorithm that uses the variable step formula (Case B) gives less steps thanImplementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1021
+--- PAGE 9 ---
+the other. For Rtol=1 0−3the total computational time of the algorithm of the Case B is
+four times smaller than the one of the Case A. And for Rtol=1 0−4, the algorithm of the Case
+B is 50 times quicker than the one of the Case A. In Figure 2 we can see the euclidean norm
+of the error (diﬀerence between the exact value and the numerical value) during the intervalof integration. We can observe that the errors of the algorithm B are smaller than the onesobtained with the algorithm A. The ode15sis superior as it works in variable order 1 −5a n d
+in
+this problem it gives many steps in order 4.
+RtolCase A Case B ode15s
+10−38638steps 874 steps 160 steps
+10−478175steps 3024 steps 206 steps
+Table 2: Number of steps given in example 1.
+0 0.5 1 1.5 2 2.510−1410−1210−1010−810−610−410−2100102
+terrorExample 1, Rtol=10−3
+Case A
+Case BOde15s
+0 0.5 1 1.5 2 2.510−1410−1210−1010−810−610−410−2100102
+terrorExample 1, Rtol=10−4
+Case ACase BOde15s
+Figure 2: Euclidean norm of the error during the simulation in example 1.
+4.2 Example 2
+Consider the system of diﬀerential equations considered in [8]:
+⎧
+⎪⎨
+⎪⎩y/prime
+1=−20y 1−0.25y 2−19.75y 3
+y/prime
+2=2 0y1−20.25y 2+0.25y 3
+y/prime
+3=2 0y1−19.75y 2−0.25y 3,T=[ 0,10],y(0) = (1 ,0,−1)T(34)
+The exact solution of this problem is:⎧
+⎪⎨
+⎪⎩y1(t)=1
+2/parenleftbig
+e−0.5t+e−20t(cos20t+sin20t)/parenrightbig
+y2(t)=1
+2/parenleftbig
+e−0.5t−e−20t(cos20t−sin20t)/parenrightbig
+y3(t)=−1
+2/parenleftbig
+e−0.5t+e−20t(cos20t−sin20t)/parenrightbig
+The variable step size algorithm (Case B) requires less steps than the algorithm A, Table
+3.
+The computational time of both algorithms is similar for Rtol=1 0−3;f o rRtol=1 0−4the
+algorithm B is 3 times quicker and it is 16 times quicker for Rtol=1 0−5. The errors obtained
+by the algorithm B are also smaller than the ones obtained by the algorithm A, see Figure 3.
+Again, the o de15s is superior as many steps are given in order 4.Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1022
+--- PAGE 10 ---
+RtolCase A Case B ode15s
+10−3430steps 126 steps 64 steps
+10−43385steps 329 steps 89 steps
+10−528979steps 1202 steps 122 steps
+Table 3: Number of steps given in example 2.
+0 2 4 6 8 1010−710−610−510−410−310−210−1100
+terrorExample 2, Rtol=10−3
+Case A
+Case BOde15s
+0 2 4 6 8 1010−710−610−510−410−310−210−1100
+terrorExample 2, Rtol=10−4
+Case ACase BOde15s
+0 2 4 6 8 1010−810−710−610−510−410−310−210−1100
+terrorExample 2, Rtol=10−5
+Case ACase BOde15s
+Figure 3: Euclidean norm of the error during the simulation in example 2.
+4.3 Example 3
+We consider the following stiﬀ system considered by Hosseini and Hojjati in [9].
+⎧
+⎪⎨
+⎪⎩y/prime
+1=−0.1y1−49.9y2
+y/prime
+2=−50y 2
+y/prime
+3=7 0y2−120y 3,T=[ 0,1],y(0) = (2 ,1,2)T(35)
+with stiﬀness ratio 1200 and exact solution:⎧
+⎪⎨
+⎪⎩y1(t)=e−50t+e−0.1t
+y2(t)=e−50t
+y3(t)=e−50t+e−120t
+Again the algorithm of the case B requires less computational time, about 10 times less than
+the
+algorithm A for Rtol=1 0−5and the results are superior, see Table 4 and Figure 4.Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1023
+--- PAGE 11 ---
+RtolCase A Case B ode15s
+10−375 steps 40 steps 68 steps
+10−4702steps 275 steps 87 steps
+10−513224steps 727 steps 104 steps
+Table 4: Number of steps given in example 3.
+0 0.2 0.4 0.6 0.8 110−810−710−610−510−410−310−210−1100
+terrorExample 3, Rtol=10−4
+Case A
+Case BOde15s
+0 0.2 0.4 0.6 0.8 110−1010−810−610−410−2100
+terrorExample 3, Rtol=10−5
+Case ACase BOde15s
+Figure 4: Euclidean norm of the error during the simulation in example 3.
+4.4 Example 4
+We consider the following stiﬀ system as considered by Cash in [2]:
+/braceleftBigg
+y/prime
+1=−αy1−βy2+(α+β−1)e−t
+y/prime
+2=βy1−αy2+(α−β−1)e−t,T=[ 0,20],y(0) = (1 ,1)T(36)
+The eigenvalues of the Jacobian matrix are −α±βi, and its exact solution is this one:
+y1(t)=y2(t)=e−t. We have solved the problem for α=1,β= 1 5 .I nT a b l e5t h en u m b e r
+of steps given in each case is tabulated. The variable step size algorithm (Case B) requires
+less steps than the algorithm A. In all the cases the computational time of the algorithm B
+is smaller than the one of the algorithm A: 10 times smaller for Rtol=1 0−3, 3 times smaller
+forRtol=1 0−4and 30 times smaller for Rtol=1 0−5. Again, the results obtained with the
+algorithm B are smaller than the ones obtained with the algorithm A, see Figure 5. This time
+the adaptive BDF2 algorithm is also more eﬃcient than the ode15s.T h i si sb e c a u s et h e ode15s
+only reaches order 3 in this problem. In Figure 6 we can see the error estimations and the step
+sizes given by the ode15sin this problem. The order in which each step has been given has
+been represented too.
+RtolCase A Case B ode15s
+10−3403steps 41 steps 414 steps
+10−43607steps 353 steps 399 steps
+10−535311steps 654 steps 387 steps
+Table 5: Number of steps given in example 4.Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1024
+--- PAGE 12 ---
+0 5 10 15 2010−910−810−710−610−510−410−310−210−1
+terrorExample 4, Rtol=10−3
+Case A
+Case BOde15s
+0 5 10 15 2010−910−810−710−610−510−410−310−210−1
+terrorExample 4, Rtol=10−4
+Case ACase BOde15s
+Figure 5: Euclidean norm of the error during the simulation in example 4.
+0 5 10 15 2000.10.20.30.40.50.60.70.80.91x 10−3
+terror estimation
+0 5 10 15 2000.020.040.060.080.10.12new step size
+t+ order 2o order 1
+* order 3
+Figure 6: Error estimation and step sizes for example 4 in ode15s,Rtol=1 0−3.
+5 Conclusions
+When we are solving systems of stiﬀ ODEs by numerical integration, it is crucial the use of
+algorithms with good accuracy and stability properties. It can be concluded from this analysisthat in general, the adaptive BDF2 algorithm is more eﬃcient than the one that uses theconstant step size advancing formulae.
+Acknowledgements. The ﬁrst author was partially funded by the Basque Government Con-
+solidated Research Group Grant IT649-13 on “Mathematical Modeling, Simulation, and Indus-
+trial Applications (M2SI)”.
+References
+[1] P. Bogacki and L. F. Shampine. A 3(2) pair of Runge-Kutta formulas. Appl. Math. Lett., 2:1–9,
+1989.
+[2] J. R. Cash. On the integration of stiﬀ systems of ODEs using extended backward diﬀerentiation
+formula. Numer. Math., 34 (2):235–246, 1980.Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1025
+--- PAGE 13 ---
+[3] J. R. Dormand and P. J. Prince. A family of embedded Runge-Kutta formulae. J. Comput. Appl.
+Math., 6 (1):19–26, 1980.
+[ 4 ]C .W .G e a r . Numerical initial value problems in Ordinary Diﬀerential Equations . Prentice Hall,
+New Jersey, 1971.
+[5] E.HairerandG.Wanner. Solving ordinary diﬀerential equations, II, Stiﬀ and Diﬀerential Algebraic
+Problems. Springer, Berlin, 1991.
+[6] E. Hairer, G. Wanner, and S. P. N ørsett. Solving ordinary diﬀerential equations, I, Nonstiﬀ
+problems. Springer, Berlin, 1993.
+[ 7 ]M .T .H e a t h . Scientiﬁc Computing. An introductory survey . Mc Graw Hill, New York, 1997.
+[8] G. Hojjati, M. Y. Rahimi Ardabili, and S. M. Hosseini. A-EBDF: an adaptative method for
+numerical solution of stiﬀ systems of ODEs. Math. Comput. Simul., 66:33–41, 2004.
+[9] S. M. Hosseini and G. Hojjati. Matrix-free MEBDF method for numerical solution of systems of
+ODEs.Math. Comput. Modell., 29:67–77, 1999.
+[10] The Math Works Inc. http://www.mathworks.com.
+[11] J. D. Lambert. Computational Methods in Ordinary Diﬀerential Equations. Wiley, London, 1973.
+[12] L. F. Shampine and R. M. Corless. Initial value problems for ODEs in problem solving environ-
+ments.J. Comput. Appl. Math., 125:31–40, 2000.
+[13] L. F. Shampine, I. Gladwell, and S. Thompson. Solving ODEs with Matlab . Cambridge University
+Press, New York, 2003.
+[14] L. F. Shampine and M. K. Gordon. Computer Solution of Ordinary Diﬀerential Equations: The
+Initial Value Problem. W. H. Freeman, San Francisco, 1975.
+[15] L. F. Shampine and M. W. Reichelt. The MATLAB ODE Suite. SIAM J. Sci. Comput. ,1 8
+(1):1–22, 1997.
+[16] J. Vigo-Aguiar, J. Martin-Vaquero, and R. Criado. On the stability of exponential ﬁtting BDF
+algorithms. Journal of Computational and Applied Mathematics , 175:183–194, 2005.Implementation of an adaptive BDF2 formula Alberdi, Anza and Chatzipantelidis
+1026
