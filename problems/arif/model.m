@@ -42,7 +42,6 @@ res = [ ya(1)-p.S
     ya(5)+p.Bi*(1-ya(4))
     yb(2)
     yb(4)];
-
 end
 
 function CfRe12 = arif_localSkinFriction(sol, p, n)
@@ -54,6 +53,5 @@ end
 function NuRe12 = arif_nusseltNumberFn(sol, p, n)
 y0  = factory('evalSolution', sol, 0);
 tp0 = y0(5);
-% NuRe12 = -(n.bK + (4/3)*p.Rd)*tp0;
-NuRe12 = (-n.bK*(1 + p.Rd))*tp0;
+NuRe12 = -(n.bK + (4/3)*p.Rd)*tp0;
 end

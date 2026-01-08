@@ -31,6 +31,9 @@ prevSolutions = cell(1, nBranches);
 solutionCache = cell(nBranches, numSweeps);
 processed = false(1, numSweeps);
 hasSuccessfulPoint = false;
+probeCfg = resolveProbeConfig(sweepCfgOut);
+probeState = initProbeState(probeCfg);
+rightToLeftFailCount = 0;
 attemptLog = emptyAttemptLog();
 lineBlockIdx = beginLineLog();
 
@@ -38,11 +41,10 @@ while true
     if isempty(values) || isempty(processed)
         break;
     end
-    remainingOrder = remainingSolveOrder(values, processed, sweepCfgOut);
-    if isempty(remainingOrder)
+    [sweepIdx, probeState] = selectNextSweepIndex(values, processed, sweepCfgOut, probeState);
+    if isempty(sweepIdx)
         break;
     end
-    sweepIdx = remainingOrder(1);
 
     currentValue = pickValueSafe(values, sweepIdx);
     if isempty(sweepLabels)
@@ -60,13 +62,31 @@ while true
     attemptLog(end+1) = buildAttemptLogEntry(currentValue, currentLabel, branchDiagnostics); %#ok<AGROW>
 
     successThisPoint = any(branchSuccess);
+    processed(sweepIdx) = true;
     if successThisPoint
         hasSuccessfulPoint = true;
+        if strcmp(probeState.lastProbeSide, 'right')
+            probeState.rightSuccess = true;
+        end
+    else
     end
-    processed(sweepIdx) = true;
+    probeState = updateProbeStateAfterAttempt(probeState, values, processed);
+    if strcmp(probeState.mode, 'right_to_left')
+        if successThisPoint
+            rightToLeftFailCount = 0;
+        else
+            rightToLeftFailCount = rightToLeftFailCount + 1;
+            if rightToLeftFailCount >= probeCfg.maxConsecutiveFails && probeCfg.maxConsecutiveFails > 0
+                emitRunLog('Right-to-left sweep: %d consecutive fails; skipping remaining sweep values.\n', rightToLeftFailCount);
+                attemptLog = appendSkipAttempts(attemptLog, values, sweepLabels, processed, nBranches, ...
+                    'Right-to-left sweep skipped remaining values after consecutive failures.');
+                break;
+            end
+        end
+    end
 
     if ~successThisPoint
-        if shouldRefine(sweepCfgOut) && hasSuccessfulPoint
+        if shouldRefine(sweepCfgOut) && hasSuccessfulPoint && ~strcmp(probeState.mode, 'right_to_left')
             [values, odeHandles, bcHandles, sweepLabels, results, solutionCache, processed, prevSolutions, newAttempts] = ...
                 handleFailedSweepPoint(sweepIdx, values, odeHandles, bcHandles, sweepLabels, results, solutionCache, ...
                 processed, prevSolutions, guesses, domainMinList, domainMaxList, gridSizeList, ...
@@ -118,7 +138,7 @@ sweepMeta = struct( ...
 
 figurePayloads = {};
 if doPlot || nargout > 2
-    figurePayloads = renderFigures(results, values, sweepLabels, colors, lineStyles, figConfigs, attemptLog, failRanges, successRanges, successOutliers, metricFallbacks, doPlot);
+figurePayloads = renderFigures(results, values, sweepLabels, colors, lineStyles, figConfigs, attemptLog, failRanges, successRanges, successOutliers, metricFallbacks, doPlot);
 end
 end
 
@@ -195,7 +215,7 @@ end
 if isfield(cfg,'labelFcn')
     labelFcn = cfg.labelFcn;
 else
-    labelFcn = @(val) sprintf('%s=%.3g', name, val);
+    labelFcn = @(val) sprintf('%s=%s', name, formatNumericToken(val));
 end
 
 odeHandles = cell(1, numel(values));
@@ -450,9 +470,12 @@ for branchIdx = 1:nBranches
     end
 
     baseGuessFcn = guesses{branchIdx};
-    nearestSol = selectNearestSolution(solutionCache(branchIdx,:), values, idx);
-    if isempty(nearestSol) && ~isempty(prevSolutions{branchIdx})
-        nearestSol = prevSolutions{branchIdx};
+    nearestSol = [];
+    if ~isfield(methodCfg,'disableContinuation') || ~methodCfg.disableContinuation
+        nearestSol = selectNearestSolution(solutionCache(branchIdx,:), values, idx);
+        if isempty(nearestSol) && ~isempty(prevSolutions{branchIdx})
+            nearestSol = prevSolutions{branchIdx};
+        end
     end
 
     [sol, usedContinuation, diag] = attemptSolveWithGuess(odeCurrent, bcCurrent, nearestSol, baseGuessFcn, ...
@@ -716,11 +739,11 @@ function labels = createLabels(cfg, vals)
 labels = cell(1,numel(vals));
 if isfield(cfg,'labelFcn') && ~isempty(cfg.labelFcn)
     for k = 1:numel(vals)
-        labels{k} = cfg.labelFcn(vals(k));
+        labels{k} = formatLegendLabel(cfg.labelFcn(vals(k)));
     end
 else
     for k = 1:numel(vals)
-        labels{k} = sprintf('%g', vals(k));
+        labels{k} = formatNumericToken(vals(k));
     end
 end
 end
@@ -736,6 +759,118 @@ if numSub < 1 || leftVal == rightVal
 end
 vals = linspace(leftVal, rightVal, numSub + 2);
 vals = vals(2:end-1);
+end
+
+function cfg = resolveProbeConfig(sweepCfg)
+cfg = struct('enabled', false, 'maxConsecutiveFails', 0);
+if ~isstruct(sweepCfg)
+    return
+end
+if isfield(sweepCfg,'probeSides') && ~isempty(sweepCfg.probeSides)
+    cfg.enabled = logical(sweepCfg.probeSides);
+end
+if isfield(sweepCfg,'maxConsecutiveFails') && ~isempty(sweepCfg.maxConsecutiveFails)
+    cfg.maxConsecutiveFails = max(0, round(sweepCfg.maxConsecutiveFails));
+end
+end
+
+function state = initProbeState(cfg)
+state = struct('enabled', cfg.enabled, 'mode', 'default', ...
+    'leftChecked', false, 'rightChecked', false, 'rightSuccess', false, ...
+    'lastProbeSide', '');
+if state.enabled
+    state.mode = 'probe';
+end
+end
+
+function [idx, state] = selectNextSweepIndex(values, processed, cfg, state)
+idx = [];
+state.lastProbeSide = '';
+if isempty(values) || isempty(processed)
+    return
+end
+if ~state.enabled || ~strcmp(state.mode, 'probe')
+    if strcmp(state.mode, 'right_to_left')
+        remainingIdx = find(~processed);
+        if ~isempty(remainingIdx)
+            idx = remainingIdx(end);
+        end
+        return
+    end
+    remainingOrder = remainingSolveOrder(values, processed, cfg);
+    if ~isempty(remainingOrder)
+        idx = remainingOrder(1);
+    end
+    return
+end
+
+leftIdx = find(~processed, 1, 'first');
+rightIdx = find(~processed, 1, 'last');
+if isempty(leftIdx)
+    return
+end
+if ~state.leftChecked
+    idx = leftIdx;
+    state.lastProbeSide = 'left';
+    return
+end
+if ~state.rightChecked
+    idx = rightIdx;
+    state.lastProbeSide = 'right';
+    return
+end
+state.mode = 'default';
+remainingOrder = remainingSolveOrder(values, processed, cfg);
+if ~isempty(remainingOrder)
+    idx = remainingOrder(1);
+end
+end
+
+function state = updateProbeStateAfterAttempt(state, values, processed)
+if ~state.enabled || ~strcmp(state.mode, 'probe')
+    return
+end
+if strcmp(state.lastProbeSide, 'left')
+    state.leftChecked = true;
+elseif strcmp(state.lastProbeSide, 'right')
+    state.rightChecked = true;
+end
+if state.leftChecked && state.rightChecked
+    if state.rightSuccess
+        state.mode = 'right_to_left';
+    else
+        state.mode = 'default';
+    end
+end
+end
+
+function logEntries = appendSkipAttempts(logEntries, values, labels, processed, nBranches, reasonText)
+if nargin < 6 || strlength(string(reasonText)) == 0
+    reasonText = 'Skipped remaining sweep values.';
+end
+if isempty(values) || isempty(processed)
+    return
+end
+remainingIdx = find(~processed);
+if isempty(remainingIdx)
+    return
+end
+for k = 1:numel(remainingIdx)
+    idx = remainingIdx(k);
+    value = pickValueSafe(values, idx);
+    if isempty(labels)
+        label = '';
+    else
+        label = labels{min(idx, numel(labels))};
+    end
+    diagnostics = repmat(initBranchDiagnostics(), 1, nBranches);
+    for b = 1:nBranches
+        diagnostics(b).status = 'fail';
+        diagnostics(b).errorMessage = reasonText;
+        diagnostics(b).domainValue = value;
+    end
+    logEntries(end+1) = buildAttemptLogEntry(value, label, diagnostics); %#ok<AGROW>
+end
 end
 
 function figurePayloads = renderFigures(results, sweepValues, sweepLabels, colors, lineStyles, figConfigs, attemptLog, failRanges, successRanges, successOutliers, metricFallbacks, doPlot)
@@ -756,7 +891,7 @@ for cfgIdx = 1:numel(figConfigs)
         lineSets = renderProfileFigure(cfg, results, sweepLabels, colors, lineStyles, numSweeps, nBranches, sweepValues, doPlot);
         modeStr = 'profile';
     elseif strcmpi(cfg.mode,'metric')
-        lineSets = renderMetricFigure(cfg, results, sweepValues, colors, lineStyles, numSweeps, nBranches, metricFallbacks, doPlot);
+        lineSets = renderMetricFigure(cfg, results, sweepValues, colors, lineStyles, numSweeps, nBranches, successOutliers, metricFallbacks, doPlot);
         modeStr = 'metric';
     else
         lineSets = [];
@@ -856,14 +991,16 @@ end
 
 if doPlot
     applyDomainAxes(cfg, domainTraces, codomainTraces);
+    applyNumericAxisFormatting(gca);
     if ~isempty(legendEntries)
+        legendEntries = cellfun(@formatLegendLabel, legendEntries, 'UniformOutput', false);
         legend(legendEntries,'Location','best'); box on;
     end
 end
 end
 
-function lineSets = renderMetricFigure(cfg, results, sweepValues, colors, lineStyles, numSweeps, nBranches, metricFallbacks, doPlot)
-lineSets = struct('branchIdx',{},'lineLabel',{},'status',{},'x',{},'y',{});
+function lineSets = renderMetricFigure(cfg, results, sweepValues, colors, lineStyles, numSweeps, nBranches, successOutliers, metricFallbacks, doPlot)
+lineSets = struct('branchIdx',{},'lineLabel',{},'status',{},'x',{},'y',{},'asymptoteX',{});
 if numSweeps == 0 || isempty(sweepValues)
     return
 end
@@ -942,6 +1079,17 @@ for idx = 1:numel(cfg.branchIdx)
     lineStruct.status = 'success';
     lineStruct.x = sweepValues(validMask).';
     lineStruct.y = yVals(validMask).';
+    if ~shouldPlotOutliers(cfg)
+        lineStruct = filterOutlierPoints(lineStruct, successOutliers, cfg.metricField);
+    end
+    lineStruct.asymptoteX = [];
+    if isfield(cfg,'asymptote') && isstruct(cfg.asymptote) && cfg.asymptote.enabled
+        [~, ~, breakIdx, asymX] = detectAsymptoticMask(lineStruct.x, lineStruct.y, getAsymptoteConfig(cfg));
+        lineStruct.asymptoteX = asymX;
+        if ~isempty(breakIdx)
+            [lineStruct.x, lineStruct.y] = insertNaNIntoSeries(lineStruct.x, lineStruct.y, breakIdx);
+        end
+    end
     lineSets(end+1) = lineStruct; %#ok<AGROW>
 
     if doPlot
@@ -952,7 +1100,7 @@ for idx = 1:numel(cfg.branchIdx)
             baseColor = colors(mod(idx-1, size(colors,1))+1,:);
         end
         branchColor = branchColorVariant(baseColor, branch);
-        plot(lineStruct.x, lineStruct.y, 'LineWidth', 1.5, 'Color', branchColor, 'LineStyle', ls);
+        plotMetricLineWithAsymptote(cfg, lineStruct.x, lineStruct.y, branchColor, ls);
         legendEntries{end+1} = lineStruct.lineLabel; %#ok<AGROW>
     end
     yValsAll = [yValsAll, lineStruct.y.']; %#ok<AGROW>
@@ -968,10 +1116,389 @@ if doPlot
             ylim([min(yValsAll)-margin, max(yValsAll)+margin]);
         end
     end
+    if shouldPlotOutliers(cfg)
+        plotMetricOutliers(cfg, successOutliers);
+    end
+    plotAsymptoteXs(collectAsymptoteX(lineSets), blendColor([0, 0, 0], [1, 1, 1], 0.5));
+    applyNumericAxisFormatting(gca);
     if ~isempty(legendEntries)
+        legendEntries = cellfun(@formatLegendLabel, legendEntries, 'UniformOutput', false);
         legend(legendEntries,'Location','best'); box on;
     end
 end
+end
+
+function plotMetricOutliers(cfg, successOutliers)
+if ~shouldPlotOutliers(cfg)
+    return
+end
+if isempty(successOutliers) || ~isfield(cfg,'metricField')
+    return
+end
+fieldName = cfg.metricField;
+outliers = successOutliers;
+if isempty(outliers)
+    return
+end
+outlierColor = [0.85, 0.2, 0.2];
+plotted = false;
+for idx = 1:numel(outliers)
+    entry = outliers(idx);
+    if ~isfield(entry,'value')
+        continue
+    end
+    xVal = entry.value;
+    if strcmpi(fieldName, 'Nu_star') && isfield(entry,'secondaryMetric')
+        yVal = entry.secondaryMetric;
+    elseif isfield(entry,'primaryMetric')
+        yVal = entry.primaryMetric;
+    else
+        continue
+    end
+    if ~isfinite(xVal) || ~isfinite(yVal)
+        continue
+    end
+    h = plot(xVal, yVal, 'o', 'MarkerSize', 6, 'LineWidth', 1.2, ...
+        'MarkerEdgeColor', outlierColor, 'MarkerFaceColor', 'none');
+    if ~plotted
+        plotted = true;
+        uistack(h, 'top');
+    end
+end
+end
+
+function tf = shouldPlotOutliers(cfg)
+tf = false;
+if nargin < 1 || ~isstruct(cfg) || ~isfield(cfg,'showOutliers')
+    return
+end
+val = cfg.showOutliers;
+if islogical(val) && isscalar(val)
+    tf = val;
+elseif isnumeric(val) && isscalar(val)
+    tf = (val ~= 0);
+elseif isstring(val) && isscalar(val)
+    tf = any(strcmpi(strtrim(val), ["true","1","yes","on"]));
+elseif ischar(val)
+    tf = any(strcmpi(strtrim(string(val)), ["true","1","yes","on"]));
+end
+end
+
+function plotMetricLineWithAsymptote(cfg, xVals, yVals, baseColor, lineStyle)
+asymCfg = getAsymptoteConfig(cfg);
+if ~asymCfg.enabled
+    plot(xVals, yVals, 'LineWidth', 1.5, 'Color', baseColor, 'LineStyle', lineStyle);
+    return
+end
+[normalMask, asymMask, breakIdx] = detectAsymptoticMask(xVals, yVals, asymCfg);
+if ~isempty(breakIdx)
+    [xVals, yVals, normalMask] = insertNaNBreaks(xVals, yVals, normalMask, breakIdx);
+end
+plotMaskedLine(xVals, yVals, normalMask, baseColor, lineStyle);
+if any(asymMask)
+    asymColor = blendColor(baseColor, [1, 1, 1], asymCfg.fadeFactor);
+    if ~isempty(breakIdx)
+        [xAsym, yAsym, asymMask] = insertNaNBreaks(xVals, yVals, asymMask, breakIdx);
+        plotMaskedLine(xAsym, yAsym, asymMask, asymColor, '--');
+    else
+        plotMaskedLine(xVals, yVals, asymMask, asymColor, '--');
+    end
+end
+if asymCfg.breakLine
+    plotAsymptoteBreaks(xVals, yVals, breakIdx, baseColor);
+end
+end
+
+function plotMaskedLine(xVals, yVals, mask, color, style)
+if isempty(xVals) || isempty(yVals)
+    return
+end
+maskedY = yVals(:);
+maskedY(~mask(:)) = NaN;
+plot(xVals, maskedY, 'LineWidth', 1.5, 'Color', color, 'LineStyle', style);
+end
+
+function [xOut, yOut, maskOut] = insertNaNBreaks(xVals, yVals, mask, breakIdx)
+idx = unique(breakIdx(:).');
+xOut = xVals(:);
+yOut = yVals(:);
+maskOut = mask(:);
+if isempty(idx)
+    return
+end
+xTmp = nan(numel(xOut) + numel(idx), 1);
+yTmp = nan(numel(yOut) + numel(idx), 1);
+maskTmp = false(numel(maskOut) + numel(idx), 1);
+srcIdx = 1;
+dstIdx = 1;
+for k = 1:numel(idx)
+    stopIdx = idx(k);
+    count = stopIdx - srcIdx + 1;
+    if count > 0
+        xTmp(dstIdx:dstIdx+count-1) = xOut(srcIdx:stopIdx);
+        yTmp(dstIdx:dstIdx+count-1) = yOut(srcIdx:stopIdx);
+        maskTmp(dstIdx:dstIdx+count-1) = maskOut(srcIdx:stopIdx);
+        dstIdx = dstIdx + count;
+        srcIdx = stopIdx + 1;
+    end
+    xTmp(dstIdx) = NaN;
+    yTmp(dstIdx) = NaN;
+    maskTmp(dstIdx) = false;
+    dstIdx = dstIdx + 1;
+end
+if srcIdx <= numel(xOut)
+    count = numel(xOut) - srcIdx + 1;
+    xTmp(dstIdx:dstIdx+count-1) = xOut(srcIdx:end);
+    yTmp(dstIdx:dstIdx+count-1) = yOut(srcIdx:end);
+    maskTmp(dstIdx:dstIdx+count-1) = maskOut(srcIdx:end);
+end
+xOut = xTmp;
+yOut = yTmp;
+maskOut = maskTmp;
+end
+
+function [xOut, yOut] = insertNaNIntoSeries(xVals, yVals, breakIdx)
+mask = true(size(yVals(:)));
+[xOut, yOut, ~] = insertNaNBreaks(xVals, yVals, mask, breakIdx);
+end
+
+% Objective: Detect asymptotic breakpoints for metric curves.
+% Purpose: Flag discontinuities based on slope flips and amplitude.
+% SWOT: S-robust to noise; W-threshold tuning; O-reuse across plots; T-overfitting edge cases.
+function [normalMask, asymMask, breakIdx, asymX] = detectAsymptoticMask(xVals, yVals, asymCfg)
+normalMask = true(size(yVals));
+asymMask = false(size(yVals));
+breakIdx = [];
+asymX = [];
+if numel(xVals) < 3
+    return
+end
+x = xVals(:);
+y = yVals(:);
+dx = diff(x);
+dy = diff(y);
+valid = isfinite(dx) & isfinite(dy) & (dx ~= 0);
+if ~any(valid)
+    return
+end
+slope = abs(dy(valid) ./ dx(valid));
+medSlope = median(slope);
+if ~isfinite(medSlope) || medSlope <= 0
+    medSlope = 0;
+end
+threshold = asymCfg.slopeFactor * max(medSlope, eps);
+edgeMask = false(numel(dx), 1);
+edgeMask(valid) = abs(dy(valid) ./ dx(valid)) > threshold;
+absY = abs(y);
+absY = absY(isfinite(absY));
+if isempty(absY)
+    return
+end
+yLimit = prctile(absY, asymCfg.yPercentile);
+asymPoints = isfinite(y) & abs(y) >= yLimit;
+madVal = median(abs(absY - median(absY)));
+if isfinite(madVal) && madVal > 0
+    yFinite = y(isfinite(y));
+    if ~isempty(yFinite)
+        yMed = median(yFinite);
+        asymPoints = asymPoints | (isfinite(y) & abs(y - yMed) >= (asymCfg.yMadFactor * 1.4826 * madVal));
+    end
+end
+absDy = abs(dy);
+dyValid = absDy(isfinite(absDy));
+if ~isempty(dyValid)
+    dyMed = median(dyValid);
+    jumpMask = absDy > max(asymCfg.yJumpFactor * dyMed, eps);
+    edgeMask = edgeMask | jumpMask;
+end
+asymMask(1:end-1) = asymMask(1:end-1) | edgeMask;
+asymMask(2:end) = asymMask(2:end) | edgeMask;
+asymMask = asymMask | asymPoints;
+normalMask = ~asymMask;
+
+breakIdx = [];
+asymX = [];
+if numel(dy) >= 2
+    slopeFlip = sign(dy(1:end-1)) ~= sign(dy(2:end));
+    slopeFlip = slopeFlip(:) & isfinite(dy(1:end-1)) & isfinite(dy(2:end));
+    candIdx = find(slopeFlip);
+    if ~isempty(candIdx)
+        % break between x(k+1) and x(k+2) where slope flips
+        segIdx = candIdx + 1;
+        ampMask = isfinite(y(segIdx)) & (abs(y(segIdx)) >= yLimit);
+        segIdx = segIdx(ampMask);
+        if ~isempty(segIdx)
+            [~, pickIdx] = max(abs(dy(segIdx)));
+            breakIdx = segIdx(pickIdx);
+            asymX = 0.5 * (x(breakIdx) + x(breakIdx + 1));
+        end
+    end
+end
+end
+
+function cfg = getAsymptoteConfig(figCfg)
+cfg = struct('enabled', false, 'slopeFactor', 10, 'yPercentile', 98, 'yMadFactor', 8, 'yJumpFactor', 10, 'fadeFactor', 0.5, 'breakLine', true);
+if nargin < 1 || ~isstruct(figCfg)
+    return
+end
+if isfield(figCfg,'asymptote') && isstruct(figCfg.asymptote)
+    cfg = mergeAsymptoteConfig(cfg, figCfg.asymptote);
+end
+cfg.enabled = logical(cfg.enabled);
+cfg.slopeFactor = max(1, cfg.slopeFactor);
+cfg.yPercentile = min(100, max(0, cfg.yPercentile));
+cfg.yMadFactor = max(0, cfg.yMadFactor);
+cfg.yJumpFactor = max(1, cfg.yJumpFactor);
+cfg.fadeFactor = min(1, max(0, cfg.fadeFactor));
+cfg.breakLine = logical(cfg.breakLine);
+end
+
+function cfg = mergeAsymptoteConfig(baseCfg, updateCfg)
+cfg = baseCfg;
+if isfield(updateCfg,'enabled')
+    cfg.enabled = updateCfg.enabled;
+end
+if isfield(updateCfg,'slopeFactor')
+    cfg.slopeFactor = updateCfg.slopeFactor;
+end
+if isfield(updateCfg,'yPercentile')
+    cfg.yPercentile = updateCfg.yPercentile;
+end
+if isfield(updateCfg,'yMadFactor')
+    cfg.yMadFactor = updateCfg.yMadFactor;
+end
+if isfield(updateCfg,'yJumpFactor')
+    cfg.yJumpFactor = updateCfg.yJumpFactor;
+end
+if isfield(updateCfg,'fadeFactor')
+    cfg.fadeFactor = updateCfg.fadeFactor;
+end
+if isfield(updateCfg,'breakLine')
+    cfg.breakLine = updateCfg.breakLine;
+end
+end
+
+function out = blendColor(baseColor, targetColor, factor)
+out = baseColor;
+if numel(baseColor) ~= 3 || numel(targetColor) ~= 3
+    return
+end
+out = baseColor + factor * (targetColor - baseColor);
+out = min(1, max(0, out));
+end
+
+function plotAsymptoteBreaks(xVals, yVals, breakIdx, baseColor)
+x = xVals(:);
+y = yVals(:);
+plotVerticalBreaks(x, y, breakIdx, baseColor);
+end
+
+function plotVerticalBreaks(xVals, yVals, breakIdx, color)
+if isempty(breakIdx)
+    return
+end
+for k = 1:numel(breakIdx)
+    idx = breakIdx(k);
+    if idx < 1 || idx >= numel(xVals)
+        continue
+    end
+    if ~isfinite(xVals(idx)) || ~isfinite(xVals(idx+1))
+        continue
+    end
+    xMid = 0.5 * (xVals(idx) + xVals(idx+1));
+    yPair = yVals([idx, idx+1]);
+    yPair = yPair(isfinite(yPair));
+    if isempty(yPair)
+        continue
+    end
+    yMin = min(yPair);
+    yMax = max(yPair);
+    plot([xMid xMid], [yMin yMax], '-.', 'LineWidth', 1.0, 'Color', color, 'HandleVisibility', 'off');
+end
+end
+
+function asymX = collectAsymptoteX(lineSets)
+asymX = [];
+if isempty(lineSets)
+    return
+end
+for idx = 1:numel(lineSets)
+    if isfield(lineSets(idx), 'asymptoteX') && ~isempty(lineSets(idx).asymptoteX)
+        asymX = [asymX; lineSets(idx).asymptoteX(:)]; %#ok<AGROW>
+    end
+end
+end
+
+function plotAsymptoteXs(asymX, color)
+if isempty(asymX)
+    return
+end
+ax = gca;
+yl = get(ax, 'YLim');
+if isempty(yl) || numel(yl) ~= 2
+    return
+end
+uniqX = unique(asymX(isfinite(asymX)));
+for k = 1:numel(uniqX)
+    plot([uniqX(k) uniqX(k)], yl, '--', 'LineWidth', 1.0, 'Color', color, 'HandleVisibility', 'off');
+end
+end
+function lineStruct = filterOutlierPoints(lineStruct, successOutliers, metricField)
+if isempty(successOutliers) || ~isfield(lineStruct,'x') || isempty(lineStruct.x)
+    return
+end
+if nargin < 3 || isempty(metricField)
+    metricField = '';
+end
+outlierXY = extractOutlierPoints(successOutliers, metricField);
+if isempty(outlierXY)
+    return
+end
+xVals = lineStruct.x(:);
+yVals = lineStruct.y(:);
+keepMask = true(numel(xVals), 1);
+for idx = 1:numel(xVals)
+    if isOutlierPoint(xVals(idx), yVals(idx), outlierXY)
+        keepMask(idx) = false;
+    end
+end
+lineStruct.x = xVals(keepMask);
+lineStruct.y = yVals(keepMask);
+end
+
+function outlierXY = extractOutlierPoints(successOutliers, metricField)
+outlierXY = [];
+if isempty(successOutliers)
+    return
+end
+for idx = 1:numel(successOutliers)
+    entry = successOutliers(idx);
+    if ~isfield(entry,'value')
+        continue
+    end
+    xVal = entry.value;
+    if strcmpi(metricField, 'Nu_star') && isfield(entry,'secondaryMetric')
+        yVal = entry.secondaryMetric;
+    elseif isfield(entry,'primaryMetric')
+        yVal = entry.primaryMetric;
+    else
+        continue
+    end
+    if isfinite(xVal) && isfinite(yVal)
+        outlierXY(end+1,:) = [xVal, yVal]; %#ok<AGROW>
+    end
+end
+end
+
+function tf = isOutlierPoint(xVal, yVal, outlierXY)
+if isempty(outlierXY)
+    tf = false;
+    return
+end
+tol = 1e-9 * max(1, max(abs([xVal, yVal])));
+dx = abs(outlierXY(:,1) - xVal);
+dy = abs(outlierXY(:,2) - yVal);
+tf = any(dx <= tol & dy <= tol);
 end
 
 function applyDomainAxes(cfg, domainTraces, codomainTraces)
@@ -1002,11 +1529,61 @@ else
 end
 end
 
+function applyNumericAxisFormatting(axHandle)
+if nargin < 1 || isempty(axHandle)
+    axHandle = gca;
+end
+try
+    xTicks = get(axHandle, 'XTick');
+    yTicks = get(axHandle, 'YTick');
+    if ~isempty(xTicks)
+        xLabels = arrayfun(@formatNumericToken, xTicks, 'UniformOutput', false);
+        set(axHandle, 'XTickLabel', xLabels);
+    end
+    if ~isempty(yTicks)
+        yLabels = arrayfun(@formatNumericToken, yTicks, 'UniformOutput', false);
+        set(axHandle, 'YTickLabel', yLabels);
+    end
+catch
+end
+end
+
 function entry = composeLegendEntry(sweepLabel, branchIdx)
 if isempty(sweepLabel)
     entry = sprintf('branch %d', branchIdx);
 else
     entry = sprintf('%s, branch %d', sweepLabel, branchIdx);
+end
+end
+
+function out = formatLegendLabel(label)
+if isstring(label)
+    txt = char(label);
+elseif ischar(label)
+    txt = label;
+else
+    txt = char(string(label));
+end
+if isempty(txt)
+    out = txt;
+    return
+end
+out = replaceNumericTokens(txt);
+end
+
+function out = replaceNumericTokens(txt)
+out = txt;
+[starts, ends, matches] = regexp(txt, '[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?', 'start', 'end', 'match');
+if isempty(matches)
+    return
+end
+for idx = numel(matches):-1:1
+    numVal = str2double(matches{idx});
+    if ~isfinite(numVal)
+        continue
+    end
+    formatted = formatNumericToken(numVal);
+    out = [out(1:starts(idx)-1), formatted, out(ends(idx)+1:end)];
 end
 end
 
@@ -1033,6 +1610,10 @@ entry.primaryMetricLabels = repmat({''}, 1, nBranches);
 entry.secondaryMetricLabels = repmat({''}, 1, nBranches);
 entry.initialGuessMesh = repmat({[]}, 1, nBranches);
 entry.initialGuessProfiles = repmat({[]}, 1, nBranches);
+entry.allBranchesSuccess = false;
+entry.branchesDeviation = NaN;
+entry.branchesDeviationPrimary = NaN;
+entry.branchesDeviationSecondary = NaN;
 
 for idx = 1:nBranches
     diag = diagnostics(idx);
@@ -1091,6 +1672,10 @@ for idx = 1:nBranches
         entry.initialGuessProfiles{idx} = diag.initialGuessProfile;
     end
 end
+entry.allBranchesSuccess = all(strcmpi(entry.branchStatus, 'success'));
+entry.branchesDeviation = computeBranchesDeviation(entry.solutionValues);
+entry.branchesDeviationPrimary = computeBranchesDeviation(entry.solutionValues);
+entry.branchesDeviationSecondary = computeBranchesDeviation(entry.secondaryValues);
 end
 
 function logStruct = emptyAttemptLog()
@@ -1100,7 +1685,30 @@ logStruct = struct('value',{},'label',{},'branchStatus',{}, ...
     'solutionValues',{},'secondaryValues',{}, ...
     'primaryMetricLabels',{},'secondaryMetricLabels',{}, ...
     'sweepSteps',{},'initialGuessErrors',{},'iterations',{}, ...
-    'consoleLogs',{},'stateVectors',{},'initialGuessMesh',{},'initialGuessProfiles',{});
+    'consoleLogs',{},'stateVectors',{},'initialGuessMesh',{},'initialGuessProfiles',{}, ...
+    'allBranchesSuccess',{},'branchesDeviation',{},'branchesDeviationPrimary',{},'branchesDeviationSecondary',{});
+end
+
+function deviation = computeBranchesDeviation(values)
+deviation = NaN;
+if isempty(values)
+    return
+end
+vals = values(isfinite(values));
+if numel(vals) < 2
+    return
+end
+numVals = numel(vals);
+pairs = [];
+for i = 1:numVals-1
+    for j = i+1:numVals
+        pairs(end+1) = abs(vals(i) - vals(j)); %#ok<AGROW>
+    end
+end
+if isempty(pairs)
+    return
+end
+deviation = mean(pairs);
 end
 
 function diagnostics = assignSweepStep(diagnostics, sweepStep)
@@ -1277,18 +1885,18 @@ if isempty(stateVector)
     emitRunLog('Result: N/A\n');
 else
     vec = stateVector(:).';
-    formattedVals = strjoin(arrayfun(@(v) sprintf('%.6g', v), vec, 'UniformOutput', false), ', ');
+    formattedVals = strjoin(arrayfun(@formatNumericToken, vec, 'UniformOutput', false), ', ');
     emitRunLog('Result: [%s]\n', formattedVals);
 end
 if nargin < 2 || ~isfinite(cfValue)
     emitRunLog('localSkinFriction: N/A\n');
 else
-    emitRunLog('localSkinFriction: %.6g\n', cfValue);
+    emitRunLog('localSkinFriction: %s\n', formatNumericToken(cfValue));
 end
 if nargin < 3 || ~isfinite(nuValue)
     emitRunLog('nusseltNumber: N/A\n');
 else
-    emitRunLog('nusseltNumber: %.6g\n', nuValue);
+    emitRunLog('nusseltNumber: %s\n', formatNumericToken(nuValue));
 end
 emitRunLog('=======================\n');
 end
@@ -1318,14 +1926,14 @@ if nargin >= 6 && ~isempty(methodMeta) && isstruct(methodMeta)
         if numel(window) >= 2 && all(isfinite(window))
             valueSuffix = '';
             if isfield(methodMeta,'domainDisplayValue') && isfinite(methodMeta.domainDisplayValue)
-                valueSuffix = sprintf(' (%s=%.5g)', paramLabelClean, methodMeta.domainDisplayValue);
+                valueSuffix = sprintf(' (%s=%s)', paramLabelClean, formatNumericToken(methodMeta.domainDisplayValue));
             end
-            paramWindowTxt = sprintf('%s window: [%g, %g]%s;', paramLabelClean, window(1), window(2), valueSuffix);
+            paramWindowTxt = sprintf('%s window: [%s, %s]%s;', paramLabelClean, formatNumericToken(window(1)), formatNumericToken(window(2)), valueSuffix);
         elseif isfield(methodMeta,'domainDisplayValue') && isfinite(methodMeta.domainDisplayValue)
-            paramWindowTxt = sprintf('%s=%.5g;', paramLabelClean, methodMeta.domainDisplayValue);
+            paramWindowTxt = sprintf('%s=%s;', paramLabelClean, formatNumericToken(methodMeta.domainDisplayValue));
         end
     elseif isfield(methodMeta,'domainDisplayValue') && isfinite(methodMeta.domainDisplayValue)
-        paramWindowTxt = sprintf('%s=%.5g;', paramLabelClean, methodMeta.domainDisplayValue);
+        paramWindowTxt = sprintf('%s=%s;', paramLabelClean, formatNumericToken(methodMeta.domainDisplayValue));
     end
     if isfield(methodMeta,'meshLabel') && ~isempty(methodMeta.meshLabel)
         meshLabel = sanitizeAxisLabelLocal(methodMeta.meshLabel);
@@ -1333,20 +1941,20 @@ if nargin >= 6 && ~isempty(methodMeta) && isstruct(methodMeta)
     if isfield(methodMeta,'solutionRange') && numel(methodMeta.solutionRange) >= 2
         solveBounds = methodMeta.solutionRange;
         if all(isfinite(solveBounds))
-            meshSolvedTxt = sprintf('%s mesh solved range [%g, %g];', meshLabel, solveBounds(1), solveBounds(end));
+            meshSolvedTxt = sprintf('%s mesh solved range [%s, %s];', meshLabel, formatNumericToken(solveBounds(1)), formatNumericToken(solveBounds(end)));
         end
     end
     if isfield(methodMeta,'groupParamName') && ~isempty(methodMeta.groupParamName)
         groupLabel = sanitizeAxisLabelLocal(methodMeta.groupParamName);
         if isfield(methodMeta,'groupParamValue') && isfinite(methodMeta.groupParamValue)
-            groupTxt = sprintf('%s=%.5g;', groupLabel, methodMeta.groupParamValue);
+            groupTxt = sprintf('%s=%s;', groupLabel, formatNumericToken(methodMeta.groupParamValue));
         else
             groupTxt = sprintf('%s group;', groupLabel);
         end
     end
 end
 
-meshWindowTxt = sprintf('%s mesh window: [%g, %g];', meshLabel, domainMin, domainMax);
+meshWindowTxt = sprintf('%s mesh window: [%s, %s];', meshLabel, formatNumericToken(domainMin), formatNumericToken(domainMax));
 
 headerLines = {
     '======================='
@@ -1390,7 +1998,7 @@ if isempty(value)
     return
 end
 if isnumeric(value)
-    txt = mat2str(value, 6);
+    txt = formatNumericArray(value);
     return
 end
 if iscell(value)
@@ -1403,7 +2011,7 @@ end
 function txt = buildMethodConsoleLog(meshPoints, residualValue, odeEvalCount, bcEvalCount)
 lines = {
     sprintf('The solution was obtained on a mesh of %d points.', meshPoints);
-    sprintf('The maximum residual is  %.3e.', residualValue);
+    sprintf('The maximum residual is  %s.', formatNumericToken(residualValue));
     sprintf('There were %d calls to the ODE function.', odeEvalCount);
     sprintf('There were %d calls to the BC function.', bcEvalCount);
     };
@@ -1589,9 +2197,9 @@ endVal = range.endValue;
 haveNumeric = isfinite(startVal) && isfinite(endVal);
 if haveNumeric
     if abs(startVal - endVal) < eps(max(abs(startVal), abs(endVal))) * 10
-        txt = sprintf('%s=%.5g', paramLabel, startVal);
+        txt = sprintf('%s=%s', paramLabel, formatNumericToken(startVal));
     else
-        txt = sprintf('%s=%.5g to %.5g', paramLabel, startVal, endVal);
+        txt = sprintf('%s=%s to %s', paramLabel, formatNumericToken(startVal), formatNumericToken(endVal));
     end
 else
     startLabel = strtrim(char(range.startLabel));
@@ -1652,7 +2260,7 @@ end
 function token = formatParamToken(label, value)
 lbl = sanitizeAxisLabelLocal(label);
 if isfinite(value)
-    token = sprintf('%s=%.5g', lbl, value);
+    token = sprintf('%s=%s', lbl, formatNumericToken(value));
 else
     token = '';
 end
@@ -1664,7 +2272,15 @@ if numel(rangeVals) ~= 2 || any(~isfinite(rangeVals))
     return
 end
 lbl = sanitizeAxisLabelLocal(label);
-token = sprintf('%s=[%g,%g]', lbl, rangeVals(1), rangeVals(2));
+token = sprintf('%s=[%s,%s]', lbl, formatNumericToken(rangeVals(1)), formatNumericToken(rangeVals(2)));
+end
+
+function token = formatNumericToken(value)
+token = numericFormat('token', value);
+end
+
+function txt = formatNumericArray(values)
+txt = numericFormat('array', values);
 end
 
 function outliers = detectSuccessOutliers(attemptLog)
@@ -1763,10 +2379,11 @@ for idx = 1:numel(outliers)
     entry = outliers(idx);
     labelTxt = strtrim(char(entry.label));
     if strlength(string(labelTxt)) == 0
-        labelTxt = sprintf('%s=%.5g', paramLabel, entry.value);
+        labelTxt = sprintf('%s=%s', paramLabel, formatNumericToken(entry.value));
     end
-    emitRunLog('  Branch %d | attempt %d | %s | Cf=%.6g | deviation=%.3g (%.2fx)\n', ...
-        entry.branchIdx, entry.attemptIndex, labelTxt, entry.primaryMetric, entry.deviation, entry.normalizedDeviation);
+    emitRunLog('  Branch %d | attempt %d | %s | Cf=%s | deviation=%s (%sx)\n', ...
+        entry.branchIdx, entry.attemptIndex, labelTxt, formatNumericToken(entry.primaryMetric), ...
+        formatNumericToken(entry.deviation), formatNumericToken(entry.normalizedDeviation));
 end
 
 emitRunLog('=======================\n');
@@ -1846,7 +2463,7 @@ function logMetricFallbackUsage(figCfg, branchIdx, sweepValue, sweepLabel)
 paramLabel = sanitizeAxisLabelLocal(getfieldWithDefault(figCfg,'xlabel','parameter'));
 labelTxt = sweepLabel;
 if strlength(string(labelTxt)) == 0
-    labelTxt = sprintf('%s=%.5g', paramLabel, sweepValue);
+    labelTxt = sprintf('%s=%s', paramLabel, formatNumericToken(sweepValue));
 end
 emitRunLog('Reused cached metrics for %s | branch %d due to missing results.\n', strtrim(char(labelTxt)), branchIdx);
 end

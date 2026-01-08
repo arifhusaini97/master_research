@@ -92,15 +92,17 @@ xDisplay = arrayfun(@(xVal, isFail) formatXValue(xVal, isFail), xVals, ~successM
 statusValues = repmat("success", numel(xVals), 1);
 statusValues(~successMask) = "failed";
 
-csvTbl = table( ...
-    string(xDisplay), ...
-    yVals, ...
-    stepSizes, ...
-    statusValues, ...
-    'VariableNames', {'domain_value','codomain_value','step_size','status'});
-
 csvPath = fullfile(outDir, sprintf('%s_branch%d_results%s.csv', targetSpec.sweepNameSlug, branchIdx, suffix));
-writetable(csvTbl, csvPath);
+fid = fopen(csvPath, 'w');
+if fid == -1
+    error('outputGenerator:writeSweepCsvFailed', 'Unable to open %s for writing.', csvPath);
+end
+cleanupObj = onCleanup(@() fclose(fid)); %#ok<NASGU>
+writeCsvRow(fid, {'domain_value','codomain_value','step_size','status'});
+for idx = 1:numel(xDisplay)
+    writeCsvRow(fid, {xDisplay{idx}, yVals(idx), stepSizes(idx), statusValues(idx)});
+end
+clear cleanupObj
 if isfield(sweepMeta,'attemptLog')
     appendAttemptLogSection(csvPath, sweepMeta.attemptLog, branchIdx);
 end
@@ -147,7 +149,7 @@ end
 end
 
 function outStr = formatXValue(xVal, isFail)
-token = sprintf('%.5g', xVal);
+token = formatNumericToken(xVal);
 if isFail
     outStr = sprintf('RED(%s)', token);
 else
@@ -227,7 +229,7 @@ writeCsvRow(fid, {''});
     writeCsvRow(fid, {'section', sprintf('attempt_log_branch_%d', branchIdx)});
     primaryLabel = buildMetricColumnLabelOG(attemptLog, branchIdx, 'primaryMetricLabels', 'primary_metric');
     secondaryLabel = buildMetricColumnLabelOG(attemptLog, branchIdx, 'secondaryMetricLabels', 'secondary_metric');
-    header = {'attempt_index','sweep_value','sweep_label','status','configured_step','sweep_step','avg_mesh_step','max_residual','error_message', ...
+    header = {'attempt_index','sweep_value','sweep_label','all_branches_success','branches_deviation','branches_deviation_cf','branches_deviation_nu','status','configured_step','sweep_step','avg_mesh_step','max_residual','error_message', ...
         'initial_guess_error','iterations', primaryLabel, secondaryLabel};
 writeCsvRow(fid, header);
 for idx = 1:numel(attemptLog)
@@ -242,7 +244,14 @@ for idx = 1:numel(attemptLog)
     sweepStep = safeArrayValue(entry.sweepSteps, branchIdx, NaN);
     guessErr = safeArrayValue(entry.initialGuessErrors, branchIdx, NaN);
     iterCount = safeArrayValue(entry.iterations, branchIdx, NaN);
-    row = {idx, entry.value, entry.label, statusVal, cfgStep, sweepStep, avgStep, maxResidual, errMsg, guessErr, iterCount, solVal, secVal};
+    if isfield(entry, 'allBranchesSuccess') && ~isempty(entry.allBranchesSuccess)
+        allBranchesSuccess = logical(entry.allBranchesSuccess);
+    else
+        allBranchesSuccess = false;
+    end
+    row = {idx, entry.value, entry.label, allBranchesSuccess, getfieldWithDefault(entry, 'branchesDeviation', NaN), ...
+        getfieldWithDefault(entry, 'branchesDeviationPrimary', NaN), getfieldWithDefault(entry, 'branchesDeviationSecondary', NaN), ...
+        statusVal, cfgStep, sweepStep, avgStep, maxResidual, errMsg, guessErr, iterCount, solVal, secVal};
     writeCsvRow(fid, row);
 end
 end
@@ -301,11 +310,15 @@ elseif isnumeric(value)
             token = '-Inf';
         end
     else
-        token = sprintf('%.12g', value);
+        token = formatNumericToken(value);
     end
 else
     token = quoteString(char(string(value)));
 end
+end
+
+function token = formatNumericToken(value)
+token = numericFormat('token', value);
 end
 
 function out = quoteString(str)

@@ -1,12 +1,15 @@
-function cfg = values()
+function values = values()
 %VALUES Parameter definition for Arif's configuration.
+% figure 3 might be terbalik 260102_1517_arif_bvp5c_m_0p1v0p3 but figure 4
+% is right
+% sweep: (1) change inclination angle pi/3 (tak dpt 2nd sol), pi/4, pi/6 (Anuar)
 
-cfg = struct();
+values = struct();
 p = struct();
 p.delta = 0.2;
 p.omega = 0.1;
 p.A = -1.2;
-p.M = 0.01;
+p.M = 0.1;
 p.lambda = -0.2;
 p.Pr = 6.2;
 p.Rd = 0.2;
@@ -35,66 +38,50 @@ n.bRhoCp = (1 - m.phiHnf) + m.phi1*(m.rhoS1*m.CpS1)/(m.rhoF*m.CpF) + m.phi2*(m.r
 n.bK = (((m.phi1*m.kS1 + m.phi2*m.kS2)/m.phiHnf) + 2*m.kF + 2*(m.phi1*m.kS1 + m.phi2*m.kS2) - 2*m.phiHnf*m.kF) ...
     / (((m.phi1*m.kS1 + m.phi2*m.kS2)/m.phiHnf) + 2*m.kF - (m.phi1*m.kS1 + m.phi2*m.kS2) + m.phiHnf*m.kF);
 
-branchOneState = [0.1; 0.816353; -0.612155; -0.126812; -0.225362];
-branchTwoState = [0.1; 0.93423; -0.219232; 1.53037; 0.106074];
-
-branchSpecs = [
-    struct('state', branchOneState, 'fpDecay', 0.9, 'fpTail', 0.01, ...
-    'fppDecay', 0.7, 'fppTail', -0.02, 'tFar', -0.05, 'tDecay', 0.55);
-    struct('state', branchTwoState, 'fpDecay', 0.6, 'fpTail', 0.02, ...
-    'fppDecay', 0.45, 'fppTail', -0.05, 'tFar', 0.2, 'tDecay', 0.4)
-    ];
-
-cfg.guesses = {
-    @(x) branchGuessProfile(x, branchSpecs(1), p);
-    @(x) branchGuessProfile(x, branchSpecs(2), p);
+values.p = p;
+values.m = m;
+values.n = n;
+values.guesses = {
+    @(x) firstBranchGuess(x, p);
+    @(x) secondBranchGuess(x, p);
     };
+values.domainMinList = [0, 0];
+values.domainMaxList = [10, 10];
 
-cfg.domainMinList = [0, 0];
-cfg.domainMaxList = [3.5, 3.5];
-cfg.domainGridSizeList = [5, 5];
-
-cfg.p = p;
-cfg.m = m;
-cfg.n = n;
+values.sweep = struct();
+values.sweep.mValues = [0.1,0.2,0.3];
+lambdaVals = linspace(-1.85, 0.85, 100);
+% the critical point atleast converge to the roundoff 7 decimal places
+lambdaVals = unique([lambdaVals, -1.8268585, -1.30733462342,-0.860944740656, -0.01669759,-0.01121125,-0.00833887,0.01211382,0.02703834, 0.04958789], 'sorted');
+% (lambdaVals >= min & lambdaVals <= max)
+% values.sweep.excludeLambdaRanges = [
+%     -0.01669759 -0.00833887
+%     -1.6 -1.4
+%     ];
+values.sweep.excludeLambdaRanges = [];
+values.sweep.lambdaVals = lambdaVals;
 end
 
-function profile = branchGuessProfile(x, spec, p)
-eta = x(:).';
-if isempty(eta)
-    eta = 0;
-end
-state = spec.state(:);
-if numel(state) ~= 5
-    error('values:invalidSeed','State vector must have 5 components.');
-end
-fpDecay = max(spec.fpDecay, 0.1);
-fpTail = spec.fpTail;
-fppDecay = max(spec.fppDecay, 0.1);
-fppTail = spec.fppTail;
-tFar = spec.tFar;
-tDecay = max(spec.tDecay, 0.2);
-
-fpp = fppTail + (state(3) - fppTail) .* exp(-fppDecay .* eta);
-fpCore = fpTail + (state(2) - fpTail) .* exp(-fpDecay .* eta);
-fp = 1 + p.Sl * fpp;
-fp = 0.7 * fp + 0.3 * fpCore;
-fp(1) = state(2);
-
-if fpDecay <= 0
-    f = p.S + fpTail .* eta;
-else
-    f = p.S + fpTail .* eta + ((state(2) - fpTail) / fpDecay) .* (1 - exp(-fpDecay .* eta));
+function guess = firstBranchGuess(x, p)
+x = x(:).';
+decay = exp(-x);
+guess = [
+    p.S + 0.2 + decay;
+    decay;
+    -decay;
+    decay;
+    decay
+    ];
 end
 
-t = tFar + (state(4) - tFar) .* exp(-tDecay .* eta);
-tp = -tDecay * (state(4) - tFar) .* exp(-tDecay .* eta);
-
-profile = [
-    f;
-    fp;
-    fpp;
-    t;
-    tp
+function guess = secondBranchGuess(x, p)
+x = x(:).';
+decay = exp(-x);
+guess = [
+    p.S + (1 - decay);
+    decay;
+    -decay;
+    decay;
+    -decay
     ];
 end

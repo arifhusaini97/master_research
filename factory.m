@@ -29,6 +29,7 @@ if nargin < 1 || strlength(string(problemName)) == 0
 end
 problemKey = char(lower(strtrim(string(problemName))));
 cfg = invokeProfileFunction(problemKey, 'values');
+cfg = applyProblemConfig(cfg, problemKey);
 cfg.problemName = problemKey;
 cfg = ensureDomainDefaults(cfg);
 end
@@ -67,6 +68,8 @@ end
 method = ensureMethodDefaults(method, cfg);
 opts = parseProblemRunOptions(varargin{:});
 cfg = ensureDomainDefaults(cfg);
+cfg = applyMethodDomainConfig(cfg, method);
+applyNumericFormatOptions(cfg);
 if ~isfield(cfg,'seedLibrary')
     cfg.seedLibrary = struct();
 end
@@ -159,6 +162,7 @@ end
 inputSnapshot = persistInputArtifacts(cfg.problemName, outputDir);
 
 if ~isempty(figurePayloads)
+    figurePayloads = attachParamSnapshot(figurePayloads, cfg);
     persistFigureArtifacts(figurePayloads, outputDir, opts.persistFiguresAsImages);
 end
 
@@ -262,7 +266,7 @@ targetDir = fullfile(outDir, 'input');
 if ~exist(targetDir, 'dir')
     mkdir(targetDir);
 end
-fileList = {'method','model','profile','values'};
+fileList = {'method','model','profile','values','config'};
 records = struct('name',{},'path',{});
 for idx = 1:numel(fileList)
     src = fullfile(probDir, [fileList{idx}, '.m']);
@@ -274,6 +278,37 @@ for idx = 1:numel(fileList)
     records(end+1) = struct('name', fileList{idx}, 'path', dst); %#ok<AGROW>
 end
 info.files = records;
+end
+
+% Objective: Merge optional problem config into values.
+% Purpose: Keep values.m pure while still providing runtime settings.
+% SWOT: S-clean separation; W-extra lookup; O-pluggable configs; T-missing config files.
+function cfg = applyProblemConfig(cfg, problemKey)
+cfg = ensureStruct(cfg);
+configPath = fullfile(projectRoot(), 'problems', problemKey, 'config.m');
+if exist(configPath, 'file') ~= 2
+    return
+end
+cfgConfig = invokeProfileFunction(problemKey, 'config');
+if ~isstruct(cfgConfig)
+    return
+end
+cfg = mergeStructs(cfg, cfgConfig);
+end
+
+function out = mergeStructs(base, override)
+out = base;
+fields = fieldnames(override);
+for k = 1:numel(fields)
+    name = fields{k};
+    out.(name) = override.(name);
+end
+end
+
+function cfg = ensureStruct(cfg)
+if ~isstruct(cfg)
+    cfg = struct();
+end
 end
 
 function label = buildRangeLabel(values)
@@ -415,12 +450,15 @@ if isfield(cfg,'ylabel') && ~isempty(cfg.ylabel)
 end
 window = resolveFigureWindow(cfg);
 if ~isempty(window)
-    writeCsvRow(fid, {'domain_window', sprintf('[%g,%g]', window)});
+    writeCsvRow(fid, {'domain_window', sprintf('[%s,%s]', formatNumericToken(window(1)), formatNumericToken(window(end)))});
 end
 if isfield(cfg,'codomainWindow') && ~isempty(cfg.codomainWindow)
-    writeCsvRow(fid, {'codomain_window', sprintf('[%g,%g]', cfg.codomainWindow)});
+    writeCsvRow(fid, {'codomain_window', sprintf('[%s,%s]', formatNumericToken(cfg.codomainWindow(1)), formatNumericToken(cfg.codomainWindow(end)))});
 end
 writeCsvRow(fid, {''});
+if isfield(figPayload,'paramSnapshot') && ~isempty(figPayload.paramSnapshot)
+    appendParamSnapshot(fid, figPayload.paramSnapshot);
+end
 
 lineSets = figPayload.lineSets;
 if isempty(lineSets)
@@ -446,6 +484,13 @@ for idx = 1:numel(lineSets)
     end
     if isfield(line,'groupLabel') && ~isempty(line.groupLabel)
         writeCsvRow(fid, {'group_label', line.groupLabel});
+    end
+    if isfield(line,'asymptoteX')
+        if isempty(line.asymptoteX)
+            writeCsvRow(fid, {'asymptote_x', ''});
+        else
+            writeCsvRow(fid, {'asymptote_x', formatNumericArray(line.asymptoteX)});
+        end
     end
     writeCsvRow(fid, {'status', line.status});
 
@@ -504,6 +549,59 @@ elseif isfield(figPayload,'attemptLog') && ~isempty(figPayload.attemptLog)
     emitFactoryLog('[F%dE] ***********************\n', figureLogIdx);
 end
 
+end
+
+function payloads = attachParamSnapshot(payloads, cfg)
+if isempty(payloads) || ~isstruct(cfg)
+    return
+end
+snapshot = struct();
+if isfield(cfg,'p')
+    snapshot.p = cfg.p;
+end
+if isfield(cfg,'m')
+    snapshot.m = cfg.m;
+end
+if isfield(cfg,'n')
+    snapshot.n = cfg.n;
+end
+if isempty(fieldnames(snapshot))
+    return
+end
+for idx = 1:numel(payloads)
+    if isempty(payloads{idx})
+        continue
+    end
+    payloads{idx}.paramSnapshot = snapshot;
+end
+end
+
+function appendParamSnapshot(fid, snapshot)
+writeCsvRow(fid, {'section','parameters'});
+writeCsvRow(fid, {'index','name','value'});
+idx = 1;
+idx = appendParamGroup(fid, snapshot, 'p', idx);
+idx = appendParamGroup(fid, snapshot, 'm', idx);
+appendParamGroup(fid, snapshot, 'n', idx);
+writeCsvRow(fid, {''});
+end
+
+function idx = appendParamGroup(fid, snapshot, groupName, idx)
+if ~isfield(snapshot, groupName)
+    return
+end
+group = snapshot.(groupName);
+if ~isstruct(group)
+    return
+end
+names = fieldnames(group);
+for k = 1:numel(names)
+    name = names{k};
+    value = group.(name);
+    label = sprintf('%s.%s', groupName, name);
+    writeCsvRow(fid, {idx, label, value});
+    idx = idx + 1;
+end
 end
 
 function [groupSummaries, combinedPayloads, primaryIdx] = runGroupedSweep(cfg, sweepDef, sweepOptions, model, method)
@@ -570,9 +668,10 @@ numFigs = numel(figConfigs);
 numGroups = numel(groupSummaries);
 payloads = cell(0,1);
 groupLabels = arrayfun(@(g) char(g.label), groupSummaries, 'UniformOutput', false);
+groupLabels = cellfun(@formatLegendLabel, groupLabels, 'UniformOutput', false);
 for figIdx = 1:numFigs
     cfg = figConfigs(figIdx);
-    combinedLines = struct('branchIdx',{},'lineLabel',{},'status',{},'x',{},'y',{},'groupLabel',{},'sweepValue',{},'sweepLabel',{});
+    combinedLines = struct('branchIdx',{},'lineLabel',{},'status',{},'x',{},'y',{},'groupLabel',{},'sweepValue',{},'sweepLabel',{},'asymptoteX',{});
     branchCount = 0;
     for g = 1:numGroups
         entry = groupPayloads{g, figIdx};
@@ -591,7 +690,8 @@ for figIdx = 1:numFigs
                 'y', getLineField(line,'y',[]), ...
                 'sweepLabel', getLineField(line,'sweepLabel',''), ...
                 'sweepValue', getLineField(line,'sweepValue',NaN), ...
-                'groupLabel', groupLabels{g});
+                'groupLabel', groupLabels{g}, ...
+                'asymptoteX', getLineField(line,'asymptoteX',[]));
             combinedLines(end+1) = lineStruct; %#ok<AGROW>
         end
     end
@@ -646,6 +746,7 @@ uniqueGroups = unique(groupLabels, 'stable');
 colors = lines(max(numel(uniqueGroups), 1));
 lineStyles = {'-','--',':','-.'};
 legendEntries = {};
+legendHandles = [];
 for idx = 1:numel(lineSets)
     line = lineSets(idx);
     if isempty(line.x)
@@ -658,12 +759,21 @@ for idx = 1:numel(lineSets)
     baseColor = colors(mod(groupIdx-1, size(colors,1))+1, :);
     color = branchColorVariant(baseColor, line.branchIdx);
     ls = lineStyles{mod(line.branchIdx-1, numel(lineStyles))+1};
-    plot(line.x, line.y, 'LineWidth', 1.5, 'Color', color, 'LineStyle', ls);
+    h = plot(line.x, line.y, 'LineWidth', 1.5, 'Color', color, 'LineStyle', ls);
     legendEntries{end+1} = line.lineLabel; %#ok<AGROW>
+    legendHandles(end+1) = h; %#ok<AGROW>
 end
+ [legendHandles, legendEntries] = appendAsymptoteLegendEntries(cfg, lineSets, uniqueGroups, colors, legendHandles, legendEntries);
 if ~isempty(legendEntries)
-    legend(legendEntries,'Location','best'); box on;
+    legendEntries = cellfun(@formatLegendLabel, legendEntries, 'UniformOutput', false);
+    if numel(legendHandles) == numel(legendEntries)
+        legend(legendHandles, legendEntries,'Location','best'); box on;
+    else
+        legend(legendEntries,'Location','best'); box on;
+    end
 end
+plotGroupedAsymptoteLines(cfg, lineSets);
+applyNumericAxisFormatting(gca);
 end
 
 function value = getLineField(line, fieldName, defaultValue)
@@ -671,6 +781,145 @@ if isfield(line, fieldName) && ~isempty(line.(fieldName))
     value = line.(fieldName);
 else
     value = defaultValue;
+end
+end
+
+function plotGroupedAsymptoteLines(cfg, lineSets)
+if isempty(lineSets)
+    return
+end
+if ~shouldPlotGroupedAsymptote(cfg)
+    return
+end
+ax = gca;
+yl = get(ax, 'YLim');
+if isempty(yl) || numel(yl) ~= 2
+    return
+end
+groupLabels = {lineSets.groupLabel};
+uniqueGroups = unique(groupLabels, 'stable');
+colors = lines(max(numel(uniqueGroups), 1));
+for idx = 1:numel(lineSets)
+    if ~isfield(lineSets(idx),'asymptoteX') || isempty(lineSets(idx).asymptoteX)
+        continue
+    end
+    groupIdx = find(strcmp(uniqueGroups, lineSets(idx).groupLabel), 1);
+    if isempty(groupIdx)
+        groupIdx = 1;
+    end
+    baseColor = colors(mod(groupIdx-1, size(colors,1))+1, :);
+    color = branchColorVariant(baseColor, lineSets(idx).branchIdx);
+    uniqX = unique(lineSets(idx).asymptoteX(isfinite(lineSets(idx).asymptoteX)));
+    for k = 1:numel(uniqX)
+        plot([uniqX(k) uniqX(k)], yl, '-.', 'LineWidth', 1.0, 'Color', color, 'HandleVisibility', 'off');
+    end
+end
+end
+
+% Objective: Add asymptote legend entries per M group.
+% Purpose: Summarize discontinuities with consistent styling.
+% SWOT: S-clear legend; W-more legend rows; O-reuse in grouped plots; T-clutter if many groups.
+function [handlesOut, entriesOut] = appendAsymptoteLegendEntries(cfg, lineSets, uniqueGroups, colors, legendHandles, legendEntries)
+handlesOut = legendHandles;
+entriesOut = legendEntries;
+if isempty(lineSets)
+    return
+end
+axisLabel = sanitizeAxisLabel(getfieldWithDefault(cfg,'xlabel','x'));
+groupLabels = {lineSets.groupLabel};
+for g = 1:numel(uniqueGroups)
+    groupLabel = uniqueGroups{g};
+    idxList = find(strcmp(groupLabels, groupLabel));
+    if isempty(idxList)
+        continue
+    end
+    asymX = [];
+    pickIdx = [];
+    for k = 1:numel(idxList)
+        line = lineSets(idxList(k));
+        if isfield(line,'asymptoteX') && ~isempty(line.asymptoteX)
+            asymX = [asymX; line.asymptoteX(:)]; %#ok<AGROW>
+            if isempty(pickIdx)
+                pickIdx = idxList(k);
+            end
+        end
+    end
+    if isempty(asymX)
+        continue
+    end
+    asymX = unique(asymX(isfinite(asymX)));
+    if isempty(asymX)
+        continue
+    end
+    xsTxt = strjoin(arrayfun(@formatNumericToken, asymX, 'UniformOutput', false), ', ');
+    label = sprintf('%s asymptote @ %s=%s', groupLabel, axisLabel, xsTxt);
+    baseColor = colors(mod(g-1, size(colors,1))+1, :);
+    branchIdx = getLineField(lineSets(pickIdx),'branchIdx',1);
+    color = branchColorVariant(baseColor, branchIdx);
+    h = plot(nan, nan, '-.', 'LineWidth', 1.0, 'Color', color, 'HandleVisibility', 'off');
+    handlesOut(end+1) = h; %#ok<AGROW>
+    entriesOut{end+1} = label; %#ok<AGROW>
+end
+end
+
+function tf = shouldPlotGroupedAsymptote(cfg)
+tf = false;
+if nargin < 1 || ~isstruct(cfg)
+    return
+end
+if ~isfield(cfg,'asymptote') || ~isstruct(cfg.asymptote) || ~isfield(cfg.asymptote,'enabled')
+    return
+end
+tf = logical(cfg.asymptote.enabled);
+end
+
+function out = formatLegendLabel(label)
+if isstring(label)
+    txt = char(label);
+elseif ischar(label)
+    txt = label;
+else
+    txt = char(string(label));
+end
+if isempty(txt)
+    out = txt;
+    return
+end
+out = replaceNumericTokens(txt);
+end
+
+function out = replaceNumericTokens(txt)
+out = txt;
+[starts, ends, matches] = regexp(txt, '[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?', 'start', 'end', 'match');
+if isempty(matches)
+    return
+end
+for idx = numel(matches):-1:1
+    numVal = str2double(matches{idx});
+    if ~isfinite(numVal)
+        continue
+    end
+    formatted = formatNumericToken(numVal);
+    out = [out(1:starts(idx)-1), formatted, out(ends(idx)+1:end)];
+end
+end
+
+function applyNumericAxisFormatting(axHandle)
+if nargin < 1 || isempty(axHandle)
+    axHandle = gca;
+end
+try
+    xTicks = get(axHandle, 'XTick');
+    yTicks = get(axHandle, 'YTick');
+    if ~isempty(xTicks)
+        xLabels = arrayfun(@formatNumericToken, xTicks, 'UniformOutput', false);
+        set(axHandle, 'XTickLabel', xLabels);
+    end
+    if ~isempty(yTicks)
+        yLabels = arrayfun(@formatNumericToken, yTicks, 'UniformOutput', false);
+        set(axHandle, 'YTickLabel', yLabels);
+    end
+catch
 end
 end
 
@@ -686,7 +935,7 @@ end
 writeCsvRow(fid, {'section', sectionKey});
 
 branchCount = max(branchCount, 1);
-header = {'attempt_index','sweep_value','sweep_label'};
+header = {'attempt_index','sweep_value','sweep_label','all_branches_success','branches_deviation','branches_deviation_cf','branches_deviation_nu'};
 for b = 1:branchCount
     primaryLabel = buildMetricColumnLabel(attemptLog, b, 'primaryMetricLabels', 'primary_metric');
     secondaryLabel = buildMetricColumnLabel(attemptLog, b, 'secondaryMetricLabels', 'secondary_metric');
@@ -698,6 +947,8 @@ for b = 1:branchCount
         sprintf('B%d_max_residual', b), ...
         sprintf('B%d_error_message', b), ...
         sprintf('B%d_state', b), ...
+        sprintf('B%d_fpp0', b), ...
+        sprintf('B%d_neg_thp0', b), ...
         sprintf('B%d_initial_guess_error', b), ...
         sprintf('B%d_iterations', b), ...
         sprintf('B%d_%s', b, primaryLabel), ...
@@ -709,7 +960,10 @@ writeCsvRow(fid, header);
 
 for idx = 1:numel(attemptLog)
     attempt = attemptLog(idx);
-    row = {idx, attempt.value, attempt.label};
+    row = {idx, attempt.value, attempt.label, logical(getfieldWithDefault(attempt, 'allBranchesSuccess', false)), ...
+        getfieldWithDefault(attempt, 'branchesDeviation', NaN), ...
+        getfieldWithDefault(attempt, 'branchesDeviationPrimary', NaN), ...
+        getfieldWithDefault(attempt, 'branchesDeviationSecondary', NaN)};
     statuses = attempt.branchStatus;
     cfgSteps = attempt.stepSizes;
     sweepSteps = attempt.sweepSteps;
@@ -736,13 +990,15 @@ for idx = 1:numel(attemptLog)
             errVal = errors{b};
         end
         stateTxt = formatStateVectorAttempt(attempt, b);
+        fpp0Val = extractStateComponent(attempt, b, 3, 1);
+        negThp0Val = extractStateComponent(attempt, b, 5, -1);
         guessErr = pickAttemptValue(guessErrors, b);
         iterVal = pickAttemptValue(iterCounts, b);
         solVal = pickAttemptValue(solVals, b);
         secVal = pickAttemptValue(secVals, b);
         meshTxt = formatGuessArrayForExport(fetchAttemptCell(meshCells, b));
         profileTxt = formatGuessArrayForExport(fetchAttemptCell(profileCells, b));
-        row = [row, {statusVal, cfgVal, sweepStep, avgVal, resVal, errVal, stateTxt, guessErr, iterVal, solVal, secVal, meshTxt, profileTxt}]; %#ok<AGROW>
+        row = [row, {statusVal, cfgVal, sweepStep, avgVal, resVal, errVal, stateTxt, fpp0Val, negThp0Val, guessErr, iterVal, solVal, secVal, meshTxt, profileTxt}]; %#ok<AGROW>
     end
     writeCsvRow(fid, row);
 end
@@ -932,7 +1188,7 @@ if isempty(value)
     return
 end
 if isnumeric(value)
-    txt = mat2str(value, 6);
+    txt = formatNumericArray(value);
     return
 end
 if iscell(value)
@@ -1076,6 +1332,32 @@ end
 if ~isfield(cfg,'domainLabel') || isempty(cfg.domainLabel)
     cfg.domainLabel = 'x';
 end
+if ~isfield(cfg,'numericFormat') || ~isstruct(cfg.numericFormat)
+    cfg.numericFormat = struct();
+end
+if ~isfield(cfg.numericFormat,'decimals') || isempty(cfg.numericFormat.decimals)
+    cfg.numericFormat.decimals = 8;
+end
+if ~isfield(cfg.numericFormat,'removeLeadingZero') || isempty(cfg.numericFormat.removeLeadingZero)
+    cfg.numericFormat.removeLeadingZero = true;
+end
+if ~isfield(cfg.numericFormat,'removeTrailingZeros') || isempty(cfg.numericFormat.removeTrailingZeros)
+    cfg.numericFormat.removeTrailingZeros = false;
+end
+end
+
+function cfg = applyMethodDomainConfig(cfg, method)
+if ~isstruct(cfg)
+    cfg = struct();
+end
+if nargin < 2 || ~isstruct(method)
+    return
+end
+if isfield(method,'domainGridSizeList') && ~isempty(method.domainGridSizeList)
+    if ~isfield(cfg,'domainGridSizeList') || isempty(cfg.domainGridSizeList)
+        cfg.domainGridSizeList = method.domainGridSizeList;
+    end
+end
 end
 
 function method = ensureMethodDefaults(method, cfg)
@@ -1094,9 +1376,10 @@ end
 method.relativeTolerance = getfieldWithDefault(method,'relativeTolerance',1e-6);
 method.absoluteTolerance = getfieldWithDefault(method,'absoluteTolerance',1e-8);
 method.maxMeshPoints = getfieldWithDefault(method,'maxMeshPoints',60000);
-method.maxSolverAttempts = getfieldWithDefault(method,'maxSolverAttempts',10);
-method.timeLimitSeconds = getfieldWithDefault(method,'timeLimitSeconds',10);
+method.maxSolverAttempts = getfieldWithDefault(method,'maxSolverAttempts',getfieldWithDefault(cfg,'maxSolverAttempts',10));
+method.timeLimitSeconds = getfieldWithDefault(method,'timeLimitSeconds',getfieldWithDefault(cfg,'timeLimitSeconds',10));
 method.attemptTimeLimit = getfieldWithDefault(method,'attemptTimeLimit',min(10, method.timeLimitSeconds));
+method.disableContinuation = getfieldWithDefault(method,'disableContinuation',getfieldWithDefault(cfg,'disableContinuation',false));
 domainLength = resolveDomainLength(cfg);
 defaultStep = domainLength / 200;
 method.initialStepSize = getfieldWithDefault(method,'initialStepSize',defaultStep);
@@ -1172,7 +1455,7 @@ elseif isnumeric(value)
             token = '-Inf';
         end
     else
-        token = sprintf('%.12g', value);
+        token = formatNumericToken(value);
     end
 else
     token = quoteString(char(string(value)));
@@ -1187,12 +1470,41 @@ if isfield(attempt,'stateVectors') && ~isempty(attempt.stateVectors) && branchId
         if isstring(vec) || ischar(vec)
             stateTxt = char(vec);
         elseif isnumeric(vec)
-            formatted = arrayfun(@(v) sprintf('%.6g', v), vec(:).', 'UniformOutput', false);
-            stateTxt = ['[', strjoin(formatted, ', '), ']'];
+            stateTxt = formatNumericArray(vec);
         end
     end
 end
 txt = stateTxt;
+end
+
+function token = formatNumericToken(value)
+token = numericFormat('token', value);
+end
+
+function txt = formatNumericArray(values)
+txt = numericFormat('array', values);
+end
+
+function applyNumericFormatOptions(cfg)
+numericFormat('apply', cfg);
+end
+
+function val = extractStateComponent(attempt, branchIdx, compIdx, scale)
+val = NaN;
+if nargin < 4 || isempty(scale)
+    scale = 1;
+end
+if ~isfield(attempt,'stateVectors') || isempty(attempt.stateVectors)
+    return
+end
+if branchIdx > numel(attempt.stateVectors)
+    return
+end
+vec = attempt.stateVectors{branchIdx};
+if isempty(vec) || compIdx > numel(vec)
+    return
+end
+val = scale * vec(compIdx);
 end
 
 function emitFactoryLog(fmt, varargin)
@@ -1283,6 +1595,9 @@ end
 function cfgOut = applySeedGuesses(cfgRoot, cfgOut, paramName, paramValue)
 cfgOut = ensureDomainDefaults(cfgOut);
 if nargin < 3 || strlength(string(paramName)) == 0
+    return
+end
+if isfield(cfgOut,'disableSeedGuesses') && cfgOut.disableSeedGuesses
     return
 end
 if ~isfield(cfgRoot,'seedLibrary')

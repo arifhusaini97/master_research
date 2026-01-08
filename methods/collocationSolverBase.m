@@ -5,7 +5,11 @@ function [sol, diagnostics] = collocationSolverBase(odeFun, bcFun, guessFcn, dom
 %          O: easy to add new collocation variants; T: regressions affect all callers.
 
     diagnostics = utils.initBranchDiagnostics(stepSize);
-    mesh = linspace(domainMin, domainMax, max(stepSize, 51));
+    minMeshPoints = 51;
+    if isfield(methodCfg,'minMeshPoints') && ~isempty(methodCfg.minMeshPoints)
+        minMeshPoints = max(2, round(methodCfg.minMeshPoints));
+    end
+    mesh = linspace(domainMin, domainMax, max(stepSize, minMeshPoints));
     rel = methodCfg.relativeTolerance;
     absTol = methodCfg.absoluteTolerance;
     maxMeshPts = methodCfg.maxMeshPoints;
@@ -14,8 +18,14 @@ function [sol, diagnostics] = collocationSolverBase(odeFun, bcFun, guessFcn, dom
     timeoutSeconds = methodCfg.timeLimitSeconds;
 
     startClock = tic;
-    timedOde = @(x,y) utils.enforceTimeLimit(odeFun, startClock, timeoutSeconds, x, y);
-    timedBc  = @(ya,yb) utils.enforceTimeLimit(bcFun, startClock, timeoutSeconds, ya, yb);
+    checkEvery = 50;
+    if isfield(methodCfg,'timeLimitCheckEvery') && ~isempty(methodCfg.timeLimitCheckEvery)
+        checkEvery = max(1, round(methodCfg.timeLimitCheckEvery));
+    end
+    odeCounter = 0;
+    bcCounter = 0;
+    timedOde = @timedOdeWrapper;
+    timedBc = @timedBcWrapper;
 
     warnState = warning;
     warning('off','all');
@@ -116,6 +126,32 @@ function [sol, diagnostics] = collocationSolverBase(odeFun, bcFun, guessFcn, dom
     sol = [];
     diagnostics.status = 'fail';
     diagnostics.errorMessage = lastError.message;
+
+    function out = timedOdeWrapper(x, y)
+        odeCounter = odeCounter + 1;
+        if shouldCheckTime(odeCounter)
+            checkTimeout();
+        end
+        out = odeFun(x, y);
+    end
+
+    function out = timedBcWrapper(ya, yb)
+        bcCounter = bcCounter + 1;
+        if shouldCheckTime(bcCounter)
+            checkTimeout();
+        end
+        out = bcFun(ya, yb);
+    end
+
+    function tf = shouldCheckTime(counter)
+        tf = timeoutSeconds > 0 && (counter == 1 || mod(counter, checkEvery) == 0);
+    end
+
+    function checkTimeout()
+        if toc(startClock) > timeoutSeconds
+            error('displayBaseFn:timeout', 'Time limit of %.1f s exceeded for solver call.', timeoutSeconds);
+        end
+    end
 end
 
 function count = extractStatCount(stats, candidates)
