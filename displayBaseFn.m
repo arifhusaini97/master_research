@@ -21,11 +21,18 @@ metricEvaluators = opts.metricEvaluators;
 
 [values, odeHandles, bcHandles, sweepLabels, sweepName, sweepCfgOut] = ...
     buildSweepHandles(sweepCfg, odeFun, bcFun);
+if isfield(sweepCfgOut,'paramName') && strlength(string(sweepCfgOut.paramName)) > 0
+    methodCfg.paramName = sweepCfgOut.paramName;
+end
+if isfield(sweepCfgOut,'paramScope') && strlength(string(sweepCfgOut.paramScope)) > 0
+    methodCfg.paramScope = sweepCfgOut.paramScope;
+end
 
 nBranches  = numel(guesses);
 blankTemplate = blankResultStruct();
 numSweeps  = numel(odeHandles);
 results    = repmat(blankTemplate, nBranches, numSweeps);
+logPlannedPointCount(sweepName, values, nBranches);
 
 prevSolutions = cell(1, nBranches);
 solutionCache = cell(nBranches, numSweeps);
@@ -107,9 +114,11 @@ while true
     end
 end
 
+attemptLog = computeAttemptRates(attemptLog);
+ [values, sweepLabels, results, attemptLog] = applySmartRateFilter(values, sweepLabels, results, attemptLog, sweepCfgOut);
 failRanges = computeContinuousFailRanges(attemptLog, 'fail');
 successRanges = computeContinuousFailRanges(attemptLog, 'success');
-successOutliers = detectSuccessOutliers(attemptLog);
+successOutliers = detectSuccessOutliers(attemptLog, opts.outlierSigma);
 metricFallbacks = buildMetricFallbacks(attemptLog);
 logContinuousRangeSummary(failRanges, sweepName, opts.domainLabel, 'fail');
 logContinuousRangeSummary(successRanges, sweepName, opts.domainLabel, 'success');
@@ -152,7 +161,8 @@ end
 end
 
 function opts = parseDisplayOptions(args)
-opts = struct('doPlot', true, 'sweep', [], 'figureConfigs', [], 'metricEvaluators', struct(), 'domainLabel', 'x');
+opts = struct('doPlot', true, 'sweep', [], 'figureConfigs', [], 'metricEvaluators', struct(), ...
+    'domainLabel', 'x', 'outlierSigma', 3);
 if isempty(args)
     return
 end
@@ -178,6 +188,9 @@ for k = 1:numel(args)
         end
         if isfield(candidate,'domainLabel') && ~isempty(candidate.domainLabel)
             opts.domainLabel = candidate.domainLabel;
+        end
+        if isfield(candidate,'outlierSigma') && ~isempty(candidate.outlierSigma)
+            opts.outlierSigma = candidate.outlierSigma;
         end
     end
 end
@@ -414,6 +427,90 @@ function flag = shouldRefine(cfg)
 flag = isstruct(cfg) && isfield(cfg,'refine') && isfield(cfg.refine,'onFail') && cfg.refine.onFail;
 end
 
+function tf = isTimeoutFailure(diagnostics)
+tf = false;
+if isempty(diagnostics) || ~isstruct(diagnostics)
+    return
+end
+if isfield(diagnostics,'errorMessage') && ~isempty(diagnostics.errorMessage)
+    msg = lower(string(diagnostics.errorMessage));
+    if contains(msg, 'time limit')
+        tf = true;
+    end
+end
+end
+
+function [sol, diagnostics] = attemptSolveWithImprovisedGuess(odeFun, bcFun, baseGuessFcn, ...
+    domainMin, domainMax, stepSize, methodCfg, domainLabel)
+sol = [];
+lastDiag = initBranchDiagnostics(stepSize);
+maxVariants = getfieldWithDefault(methodCfg,'improviseGuessAttempts',3);
+for k = 1:max(1, maxVariants)
+    guessFcn = improviseGuess(baseGuessFcn, domainMin, domainMax, k);
+    [candidate, diag] = solveBranch(odeFun, bcFun, guessFcn, domainMin, domainMax, stepSize, methodCfg, domainLabel);
+    diag.usedContinuation = false;
+    lastDiag = diag;
+    if ~isempty(candidate)
+        sol = candidate;
+        diagnostics = diag;
+        return
+    end
+end
+diagnostics = lastDiag;
+end
+
+function guessFcnOut = improviseGuess(baseGuessFcn, domainMin, domainMax, attemptIdx)
+guessFcnOut = baseGuessFcn;
+if isempty(baseGuessFcn)
+    return
+end
+seed = [];
+try
+    seed = baseGuessFcn(domainMin);
+catch
+    return
+end
+if isempty(seed)
+    return
+end
+if ~isvector(seed)
+    seed = seed(:,1);
+end
+seed = seed(:);
+if ~any(isfinite(seed))
+    return
+end
+scale = 0.2 * attemptIdx;
+shift = scale * sign(seed);
+shift(shift == 0) = scale;
+if numel(shift) >= 3
+    shift(3) = -3 * shift(3);
+end
+span = max(1, domainMax - domainMin);
+decayRate = min(0.8, (1 + 0.3 * attemptIdx) / span);
+guessFcnOut = @(x) applyGuessPerturbation(baseGuessFcn, x, domainMin, shift, decayRate);
+end
+
+function y = applyGuessPerturbation(baseGuessFcn, x, domainMin, shift, decayRate)
+y = baseGuessFcn(x);
+if isempty(y)
+    return
+end
+xRow = x(:).';
+decay = exp(-decayRate * (xRow - domainMin));
+if isvector(y)
+    y = y(:);
+    y = y + shift * decay(1);
+    return
+end
+if size(y,2) ~= numel(xRow)
+    cols = min(size(y,2), numel(xRow));
+    y = y(:,1:cols);
+    decay = decay(1:cols);
+end
+y = y + shift * decay;
+end
+
 function out = enforceTimeLimit(fun, startClock, timeoutSeconds, varargin)
 if toc(startClock) > timeoutSeconds
     error('displayBaseFn:timeout', 'Time limit of %.1f s exceeded for solver call.', timeoutSeconds);
@@ -486,6 +583,11 @@ for branchIdx = 1:nBranches
             domainMin_i, domainMax_i, stepSize_i, branchMethodCfg, domainLabel);
         branchDiagnostics(branchIdx) = diag;
     end
+    if isempty(sol) && branchIdx == 2 && branchSuccess(1) && isTimeoutFailure(branchDiagnostics(branchIdx))
+        [sol, diag] = attemptSolveWithImprovisedGuess(odeCurrent, bcCurrent, baseGuessFcn, ...
+            domainMin_i, domainMax_i, stepSize_i, branchMethodCfg, domainLabel);
+        branchDiagnostics(branchIdx) = diag;
+    end
     branchDiagnostics(branchIdx).domainValue = branchMethodCfg.domainDisplayValue;
     if isfield(branchMethodCfg,'domainSolveRange')
         branchDiagnostics(branchIdx).domainRange = branchMethodCfg.domainSolveRange;
@@ -512,8 +614,12 @@ for branchIdx = 1:nBranches
 
     CfVal = fpp0;
     NuVal = -thp0;
-    CfVal = evaluateMetricWithFallback(metricEvaluators, 'Cf_star', sol, CfVal);
-    NuVal = evaluateMetricWithFallback(metricEvaluators, 'Nu_star', sol, NuVal);
+    metricContext = struct( ...
+        'paramName', getfieldWithDefault(methodCfg,'paramName',''), ...
+        'paramScope', getfieldWithDefault(methodCfg,'paramScope',''), ...
+        'paramValue', sweepValueDisplay);
+    CfVal = evaluateMetricWithFallback(metricEvaluators, 'Cf_star', sol, CfVal, metricContext);
+    NuVal = evaluateMetricWithFallback(metricEvaluators, 'Nu_star', sol, NuVal, metricContext);
 
     duplicateTol = 1e-6;
     if usedContinuation && isDuplicateAcrossBranches(results, idx, CfVal, NuVal, branchIdx, duplicateTol)
@@ -1029,6 +1135,12 @@ finiteSweep = sweepValues(isfinite(sweepValues));
 if isempty(finiteSweep)
     return
 end
+metricMatrix = [];
+zeroDevMask = false(1, numSweeps);
+if shouldHideZeroDeviation(cfg)
+    metricMatrix = buildMetricMatrix(results, cfg, numSweeps, nBranches, metricFallbacks, sweepValues);
+    zeroDevMask = computeZeroDeviationMask(metricMatrix, cfg);
+end
 
 if doPlot
     figure(cfg.figureId); clf; hold on; grid on;
@@ -1042,46 +1154,63 @@ for idx = 1:numel(cfg.branchIdx)
         'lineLabel', sprintf('branch %d', branch), ...
         'status', 'no_data', ...
         'x', [], ...
-        'y', []);
-    yVals = zeros(1, numSweeps);
-    for sweepIdx = 1:numSweeps
-        try
-            entry = results(branch, sweepIdx);
-            if ~isempty(cfg.metricFn)
-                if ~isempty(entry.sol)
-                    yVals(sweepIdx) = cfg.metricFn(entry.sol);
-                else
-                    yVals(sweepIdx) = NaN;
-                end
-            else
-                if ~isempty(entry.sol)
-                    yVals(sweepIdx) = entry.(cfg.metricField);
-                else
-                    [fallbackVal, fallbackLabel] = fetchFallbackMetric(metricFallbacks, branch, pickValueSafe(sweepValues, sweepIdx), cfg.metricField);
-                    if isfinite(fallbackVal)
-                        yVals(sweepIdx) = fallbackVal;
-                        logMetricFallbackUsage(cfg, branch, pickValueSafe(sweepValues, sweepIdx), fallbackLabel);
+        'y', [], ...
+        'asymptoteX', []);
+    if ~isempty(metricMatrix) && idx <= size(metricMatrix, 1)
+        yVals = metricMatrix(idx, :);
+    else
+        yVals = zeros(1, numSweeps);
+        for sweepIdx = 1:numSweeps
+            try
+                entry = results(branch, sweepIdx);
+                if ~isempty(cfg.metricFn)
+                    if ~isempty(entry.sol)
+                        yVals(sweepIdx) = cfg.metricFn(entry.sol);
                     else
                         yVals(sweepIdx) = NaN;
                     end
+                else
+                    if ~isempty(entry.sol)
+                        yVals(sweepIdx) = entry.(cfg.metricField);
+                    else
+                        [fallbackVal, fallbackLabel] = fetchFallbackMetric(metricFallbacks, branch, pickValueSafe(sweepValues, sweepIdx), cfg.metricField);
+                        if isfinite(fallbackVal)
+                            yVals(sweepIdx) = fallbackVal;
+                            logMetricFallbackUsage(cfg, branch, pickValueSafe(sweepValues, sweepIdx), fallbackLabel);
+                        else
+                            yVals(sweepIdx) = NaN;
+                        end
+                    end
                 end
+            catch
+                yVals(sweepIdx) = NaN;
             end
-        catch
-            yVals(sweepIdx) = NaN;
         end
     end
     yVals = real(yVals);
-    validMask = isfinite(yVals) & isfinite(sweepValues);
+    sweepValsLocal = sweepValues(:).';
+    zeroDevLocal = zeroDevMask(:).';
+    minLen = min([numel(yVals), numel(sweepValsLocal), numel(zeroDevLocal)]);
+    if minLen < 1
+        lineSets(end+1) = lineStruct; %#ok<AGROW>
+        continue
+    end
+    yVals = yVals(1:minLen);
+    sweepValsLocal = sweepValsLocal(1:minLen);
+    zeroDevLocal = zeroDevLocal(1:minLen);
+    validMask = isfinite(yVals) & isfinite(sweepValsLocal) & ~zeroDevLocal;
     if ~any(validMask)
         lineSets(end+1) = lineStruct; %#ok<AGROW>
         continue
     end
     lineStruct.status = 'success';
-    lineStruct.x = sweepValues(validMask).';
+    lineStruct.x = sweepValsLocal(validMask).';
     lineStruct.y = yVals(validMask).';
     if ~shouldPlotOutliers(cfg)
-        lineStruct = filterOutlierPoints(lineStruct, successOutliers, cfg.metricField);
+        filterMode = getOutlierFilterMode(cfg);
+        lineStruct = filterOutlierPoints(lineStruct, successOutliers, cfg.metricField, branch, filterMode);
     end
+    % zero-deviation points already filtered via zeroDevMask
     lineStruct.asymptoteX = [];
     if isfield(cfg,'asymptote') && isstruct(cfg.asymptote) && cfg.asymptote.enabled
         [~, ~, breakIdx, asymX] = detectAsymptoticMask(lineStruct.x, lineStruct.y, getAsymptoteConfig(cfg));
@@ -1443,14 +1572,20 @@ for k = 1:numel(uniqX)
     plot([uniqX(k) uniqX(k)], yl, '--', 'LineWidth', 1.0, 'Color', color, 'HandleVisibility', 'off');
 end
 end
-function lineStruct = filterOutlierPoints(lineStruct, successOutliers, metricField)
+function lineStruct = filterOutlierPoints(lineStruct, successOutliers, metricField, branchIdx, filterMode)
 if isempty(successOutliers) || ~isfield(lineStruct,'x') || isempty(lineStruct.x)
     return
 end
 if nargin < 3 || isempty(metricField)
     metricField = '';
 end
-outlierXY = extractOutlierPoints(successOutliers, metricField);
+if nargin < 4
+    branchIdx = NaN;
+end
+if nargin < 5 || isempty(filterMode)
+    filterMode = 'global';
+end
+outlierXY = extractOutlierPoints(successOutliers, metricField, branchIdx, filterMode);
 if isempty(outlierXY)
     return
 end
@@ -1466,14 +1601,18 @@ lineStruct.x = xVals(keepMask);
 lineStruct.y = yVals(keepMask);
 end
 
-function outlierXY = extractOutlierPoints(successOutliers, metricField)
+function outlierXY = extractOutlierPoints(successOutliers, metricField, branchIdx, filterMode)
 outlierXY = [];
 if isempty(successOutliers)
     return
 end
+restrictToBranch = shouldRestrictOutliers(filterMode);
 for idx = 1:numel(successOutliers)
     entry = successOutliers(idx);
     if ~isfield(entry,'value')
+        continue
+    end
+    if restrictToBranch && isfinite(branchIdx) && isfield(entry,'branchIdx') && entry.branchIdx ~= branchIdx
         continue
     end
     xVal = entry.value;
@@ -1486,6 +1625,102 @@ for idx = 1:numel(successOutliers)
     end
     if isfinite(xVal) && isfinite(yVal)
         outlierXY(end+1,:) = [xVal, yVal]; %#ok<AGROW>
+    end
+end
+end
+
+function mode = getOutlierFilterMode(cfg)
+mode = 'global';
+if nargin < 1 || ~isstruct(cfg)
+    return
+end
+if isfield(cfg,'outlierFilter') && ~isempty(cfg.outlierFilter)
+    mode = char(string(cfg.outlierFilter));
+end
+end
+
+function tf = shouldRestrictOutliers(filterMode)
+mode = lower(strtrim(char(string(filterMode))));
+tf = any(strcmp(mode, {'branch','per-branch','per_branch','perbranch'}));
+end
+
+function tf = shouldHideZeroDeviation(cfg)
+tf = false;
+if nargin < 1 || ~isstruct(cfg)
+    return
+end
+if isfield(cfg,'plotZeroDeviation') && ~isempty(cfg.plotZeroDeviation)
+    val = cfg.plotZeroDeviation;
+    if islogical(val) && isscalar(val)
+        tf = ~val;
+    elseif isnumeric(val) && isscalar(val)
+        tf = (val == 0);
+    end
+end
+end
+
+function metricMatrix = buildMetricMatrix(results, cfg, numSweeps, nBranches, metricFallbacks, sweepValues)
+branchList = cfg.branchIdx;
+if isempty(branchList)
+    branchList = 1:nBranches;
+end
+metricMatrix = nan(numel(branchList), numSweeps);
+for b = 1:numel(branchList)
+    branch = branchList(b);
+    for sweepIdx = 1:numSweeps
+        try
+            entry = results(branch, sweepIdx);
+            if ~isempty(cfg.metricFn)
+                if ~isempty(entry.sol)
+                    metricMatrix(b, sweepIdx) = cfg.metricFn(entry.sol);
+                end
+            else
+                if ~isempty(entry.sol)
+                    metricMatrix(b, sweepIdx) = entry.(cfg.metricField);
+                else
+                    [fallbackVal, ~] = fetchFallbackMetric(metricFallbacks, branch, pickValueSafe(sweepValues, sweepIdx), cfg.metricField);
+                    if isfinite(fallbackVal)
+                        metricMatrix(b, sweepIdx) = fallbackVal;
+                    end
+                end
+            end
+        catch
+            metricMatrix(b, sweepIdx) = NaN;
+        end
+    end
+end
+metricMatrix = real(metricMatrix);
+end
+
+function mask = computeZeroDeviationMask(metricMatrix, cfg)
+mask = false(1, size(metricMatrix, 2));
+if isempty(metricMatrix)
+    return
+end
+absTol = getZeroDeviationTolerance(cfg);
+for sweepIdx = 1:size(metricMatrix, 2)
+    vals = metricMatrix(:, sweepIdx);
+    vals = vals(isfinite(vals));
+    if numel(vals) < 2
+        continue
+    end
+    deviation = computeBranchesDeviation(vals);
+    tol = max(absTol, absTol * max(1, max(abs(vals))));
+    if isfinite(deviation) && deviation <= tol
+        mask(sweepIdx) = true;
+    end
+end
+end
+
+function tol = getZeroDeviationTolerance(cfg)
+tol = 1e-6;
+if nargin < 1 || ~isstruct(cfg)
+    return
+end
+if isfield(cfg,'zeroDeviationTolerance') && ~isempty(cfg.zeroDeviationTolerance)
+    candidate = cfg.zeroDeviationTolerance;
+    if isnumeric(candidate) && isscalar(candidate) && isfinite(candidate) && candidate >= 0
+        tol = candidate;
     end
 end
 end
@@ -1596,11 +1831,15 @@ entry.branchStatus = repmat({''}, 1, nBranches);
 entry.stepSizes = nan(1, nBranches);
 entry.avgMeshSteps = nan(1, nBranches);
 entry.maxResiduals = nan(1, nBranches);
+entry.absoluteErrors = nan(1, nBranches);
+entry.relativeErrors = nan(1, nBranches);
 entry.errorMessages = repmat({''}, 1, nBranches);
 entry.meshPoints = nan(1, nBranches);
 entry.usedContinuation = false(1, nBranches);
 entry.solutionValues = nan(1, nBranches);
 entry.secondaryValues = nan(1, nBranches);
+entry.primaryRates = nan(1, nBranches);
+entry.secondaryRates = nan(1, nBranches);
 entry.stateVectors = repmat({[]}, 1, nBranches);
 entry.sweepSteps = nan(1, nBranches);
 entry.initialGuessErrors = nan(1, nBranches);
@@ -1628,6 +1867,13 @@ for idx = 1:nBranches
     end
     if isfield(diag,'maxResidual') && ~isempty(diag.maxResidual)
         entry.maxResiduals(idx) = diag.maxResidual;
+    end
+    if isfield(diag,'maxResidual') && ~isempty(diag.maxResidual) && isfinite(diag.maxResidual)
+        entry.absoluteErrors(idx) = diag.maxResidual;
+        if isfield(diag,'solutionValue') && ~isempty(diag.solutionValue) && isfinite(diag.solutionValue)
+            denom = max(eps, abs(diag.solutionValue));
+            entry.relativeErrors(idx) = diag.maxResidual / denom;
+        end
     end
     if isfield(diag,'errorMessage') && ~isempty(diag.errorMessage)
         entry.errorMessages{idx} = diag.errorMessage;
@@ -1681,14 +1927,254 @@ end
 function logStruct = emptyAttemptLog()
 logStruct = struct('value',{},'label',{},'branchStatus',{}, ...
     'stepSizes',{},'avgMeshSteps',{},'maxResiduals',{}, ...
-    'errorMessages',{},'meshPoints',{},'usedContinuation',{}, ...
-    'solutionValues',{},'secondaryValues',{}, ...
+    'absoluteErrors',{},'relativeErrors',{},'errorMessages',{},'meshPoints',{},'usedContinuation',{}, ...
+    'solutionValues',{},'secondaryValues',{},'primaryRates',{},'secondaryRates',{}, ...
     'primaryMetricLabels',{},'secondaryMetricLabels',{}, ...
     'sweepSteps',{},'initialGuessErrors',{},'iterations',{}, ...
     'consoleLogs',{},'stateVectors',{},'initialGuessMesh',{},'initialGuessProfiles',{}, ...
     'allBranchesSuccess',{},'branchesDeviation',{},'branchesDeviationPrimary',{},'branchesDeviationSecondary',{});
 end
 
+function attemptLog = computeAttemptRates(attemptLog)
+if isempty(attemptLog) || numel(attemptLog) < 2
+    return
+end
+for idx = 2:numel(attemptLog)
+    prev = attemptLog(idx-1);
+    curr = attemptLog(idx);
+    deltaSweep = curr.value - prev.value;
+    if ~isfinite(deltaSweep) || deltaSweep == 0
+        attemptLog(idx) = curr;
+        continue
+    end
+    nBranches = max([numel(curr.solutionValues), numel(prev.solutionValues), numel(curr.secondaryValues), numel(prev.secondaryValues)]);
+    primaryRates = nan(1, nBranches);
+    secondaryRates = nan(1, nBranches);
+    for b = 1:nBranches
+        if isBranchSuccess(curr, b) && isBranchSuccess(prev, b)
+            currPrimary = pickAttemptValue(curr.solutionValues, b);
+            prevPrimary = pickAttemptValue(prev.solutionValues, b);
+            if isfinite(currPrimary) && isfinite(prevPrimary)
+                primaryRates(b) = (currPrimary - prevPrimary) / deltaSweep;
+            end
+            currSecondary = pickAttemptValue(curr.secondaryValues, b);
+            prevSecondary = pickAttemptValue(prev.secondaryValues, b);
+            if isfinite(currSecondary) && isfinite(prevSecondary)
+                secondaryRates(b) = (currSecondary - prevSecondary) / deltaSweep;
+            end
+        end
+    end
+    curr.primaryRates = primaryRates;
+    curr.secondaryRates = secondaryRates;
+    attemptLog(idx) = curr;
+end
+end
+
+function [values, sweepLabels, results, attemptLog] = applySmartRateFilter(values, sweepLabels, results, attemptLog, sweepCfg)
+if isempty(values) || isempty(attemptLog) || ~isfield(sweepCfg,'smartRateEnabled') || ~sweepCfg.smartRateEnabled
+    return
+end
+if ~isfield(sweepCfg,'smartRateConfig') || isempty(sweepCfg.smartRateConfig) || ~isstruct(sweepCfg.smartRateConfig)
+    return
+end
+cfg = sweepCfg.smartRateConfig;
+if ~isfield(cfg,'min') || ~isfield(cfg,'max') || ~isfield(cfg,'count') ...
+        || ~isfield(cfg,'minRate') || ~isfield(cfg,'maxRate')
+    return
+end
+minVal = cfg.min;
+maxVal = cfg.max;
+targetCount = round(cfg.count);
+minRate = cfg.minRate;
+maxRate = cfg.maxRate;
+if targetCount < 1 || maxRate < 0 || minRate < 0
+    return
+end
+if maxVal < minVal
+    tmp = minVal;
+    minVal = maxVal;
+    maxVal = tmp;
+end
+
+tol = 1e-7;
+[candidateIdx, candidateValues] = collectRateCandidates(attemptLog, minVal, maxVal);
+if isempty(candidateIdx)
+    warning('displayBaseFn:SmartRateNoMatches', ...
+        'No sweep points met smart rate bounds; keeping all points.');
+    return
+end
+if targetCount > numel(candidateIdx)
+    warning('displayBaseFn:SmartRateTooFew', ...
+        'Only %d points eligible for rate filtering (target %d).', numel(candidateIdx), targetCount);
+    targetCount = numel(candidateIdx);
+end
+pathIdx = findRatePath(attemptLog, candidateIdx, targetCount, minRate, maxRate);
+if isempty(pathIdx)
+    fallbackCount = targetCount;
+    while isempty(pathIdx) && fallbackCount > 1
+        fallbackCount = fallbackCount - 1;
+        pathIdx = findRatePath(attemptLog, candidateIdx, fallbackCount, minRate, maxRate);
+    end
+    if isempty(pathIdx)
+        warning('displayBaseFn:SmartRateNoPath', ...
+            'No feasible rate path found; keeping the first eligible point only.');
+        pathIdx = 1;
+    else
+        warning('displayBaseFn:SmartRateReduced', ...
+            'Reduced target count to %d to satisfy rate bounds.', fallbackCount);
+    end
+end
+selectedVals = candidateValues(pathIdx);
+selectedIdx = [];
+for k = 1:numel(selectedVals)
+    matchIdx = find(abs(values - selectedVals(k)) <= tol, 1, 'first');
+    if ~isempty(matchIdx)
+        selectedIdx(end+1) = matchIdx; %#ok<AGROW>
+    end
+end
+selectedIdx = unique(selectedIdx, 'stable');
+if isempty(selectedIdx)
+    warning('displayBaseFn:SmartRateNoMatches', ...
+        'No sweep points met smart rate bounds; keeping all points.');
+    return
+end
+
+values = values(selectedIdx);
+if ~isempty(sweepLabels)
+    sweepLabels = sweepLabels(selectedIdx);
+end
+if ~isempty(results) && size(results,2) >= max(selectedIdx)
+    results = results(:, selectedIdx);
+end
+attemptLog = filterAttemptLogByValues(attemptLog, values, tol);
+attemptLog = computeAttemptRates(attemptLog);
+end
+
+function [idxList, values] = collectRateCandidates(attemptLog, minVal, maxVal)
+idxList = [];
+values = [];
+for idx = 1:numel(attemptLog)
+    entry = attemptLog(idx);
+    if ~isfield(entry,'allBranchesSuccess') || ~entry.allBranchesSuccess
+        continue
+    end
+    if ~isfinite(entry.value) || entry.value < minVal || entry.value > maxVal
+        continue
+    end
+    if isempty(entry.solutionValues) || isempty(entry.secondaryValues)
+        continue
+    end
+    idxList(end+1,1) = idx; %#ok<AGROW>
+    values(end+1,1) = entry.value; %#ok<AGROW>
+end
+if isempty(idxList)
+    return
+end
+[values, order] = sort(values);
+idxList = idxList(order);
+end
+
+function pathIdx = findRatePath(attemptLog, idxList, targetCount, minRate, maxRate)
+n = numel(idxList);
+if targetCount <= 1
+    pathIdx = 1;
+    return
+end
+dp = -ones(targetCount, n);
+for j = 1:n
+    dp(1, j) = 0;
+end
+for k = 2:targetCount
+    for j = 2:n
+        for i = 1:j-1
+            if dp(k-1, i) < 0
+                continue
+            end
+            if rateEdgeOk(attemptLog(idxList(i)), attemptLog(idxList(j)), minRate, maxRate)
+                dp(k, j) = i;
+                break
+            end
+        end
+    end
+end
+endIdx = find(dp(targetCount, :) >= 0, 1, 'first');
+if isempty(endIdx)
+    pathIdx = [];
+    return
+end
+pathIdx = zeros(targetCount, 1);
+pathIdx(targetCount) = endIdx;
+for k = targetCount:-1:2
+    pathIdx(k-1) = dp(k, pathIdx(k));
+end
+end
+
+function ok = rateEdgeOk(prevEntry, currEntry, minRate, maxRate)
+deltaSweep = currEntry.value - prevEntry.value;
+if ~isfinite(deltaSweep) || deltaSweep == 0
+    ok = false;
+    return
+end
+nBranches = max([numel(prevEntry.solutionValues), numel(currEntry.solutionValues), ...
+    numel(prevEntry.secondaryValues), numel(currEntry.secondaryValues)]);
+for b = 1:nBranches
+    prevPrimary = pickAttemptValue(prevEntry.solutionValues, b);
+    currPrimary = pickAttemptValue(currEntry.solutionValues, b);
+    prevSecondary = pickAttemptValue(prevEntry.secondaryValues, b);
+    currSecondary = pickAttemptValue(currEntry.secondaryValues, b);
+    if ~isfinite(prevPrimary) || ~isfinite(currPrimary) || ~isfinite(prevSecondary) || ~isfinite(currSecondary)
+        ok = false;
+        return
+    end
+    primaryRate = abs((currPrimary - prevPrimary) / deltaSweep);
+    secondaryRate = abs((currSecondary - prevSecondary) / deltaSweep);
+    if primaryRate < minRate || primaryRate > maxRate || secondaryRate < minRate || secondaryRate > maxRate
+        ok = false;
+        return
+    end
+end
+ok = true;
+end
+
+function filtered = filterAttemptLogByValues(attemptLog, values, tol)
+filtered = emptyAttemptLog();
+if isempty(attemptLog) || isempty(values)
+    return
+end
+for idx = 1:numel(attemptLog)
+    entry = attemptLog(idx);
+    if ~isfinite(entry.value)
+        continue
+    end
+    if any(abs(values - entry.value) <= tol)
+        filtered(end+1) = entry; %#ok<AGROW>
+    end
+end
+end
+
+function tf = isBranchSuccess(entry, branchIdx)
+tf = false;
+if ~isfield(entry,'branchStatus') || branchIdx > numel(entry.branchStatus)
+    return
+end
+status = entry.branchStatus{branchIdx};
+if isempty(status)
+    return
+end
+tf = strcmpi(status, 'success');
+end
+
+function value = pickAttemptValue(values, idx)
+if isempty(values)
+    value = NaN;
+    return
+end
+if numel(values) == 1
+    value = values;
+    return
+end
+value = values(min(idx, numel(values)));
+end
 function deviation = computeBranchesDeviation(values)
 deviation = NaN;
 if isempty(values)
@@ -1820,7 +2306,7 @@ end
 val = vals(min(idx, numel(vals)));
 end
 
-function value = evaluateMetricWithFallback(metricEvaluators, fieldName, sol, fallback)
+function value = evaluateMetricWithFallback(metricEvaluators, fieldName, sol, fallback, context)
 value = fallback;
 if nargin < 1 || isempty(metricEvaluators) || ~isstruct(metricEvaluators)
     return
@@ -1833,7 +2319,16 @@ if isempty(fn) || ~isa(fn,'function_handle')
     return
 end
 try
-    candidate = fn(sol);
+    if nargin >= 5 && ~isempty(context)
+        nArgs = nargin(fn);
+        if nArgs < 0 || nArgs >= 2
+            candidate = fn(sol, context);
+        else
+            candidate = fn(sol);
+        end
+    else
+        candidate = fn(sol);
+    end
     if isnumeric(candidate) && isscalar(candidate) && isfinite(candidate)
         value = candidate;
     end
@@ -2100,8 +2595,16 @@ if ~isstruct(sol) || ~isfield(sol,'stats') || isempty(sol.stats)
     return
 end
 stats = sol.stats;
-if isstruct(stats) && isfield(stats,'maxres') && ~isempty(stats.maxres)
-    maxRes = stats.maxres;
+if ~isstruct(stats)
+    return
+end
+candidateFields = {'maxres','maxRes','maxresidual','maxResidual','maxresiduals','maxResid'};
+for k = 1:numel(candidateFields)
+    name = candidateFields{k};
+    if isfield(stats, name) && ~isempty(stats.(name))
+        maxRes = stats.(name);
+        return
+    end
 end
 end
 
@@ -2189,6 +2692,23 @@ if strlength(string(txt)) == 0
 else
     label = txt;
 end
+end
+
+function logPlannedPointCount(sweepName, values, nBranches)
+if nargin < 3
+    return
+end
+if isempty(values)
+    sweepCount = 0;
+elseif numel(values) == 1 && isnan(values(1))
+    sweepCount = 1;
+else
+    sweepCount = numel(values);
+end
+totalPoints = sweepCount * max(1, nBranches);
+sweepLabel = sanitizeSectionTitle(sweepName);
+emitRunLog('Planned points (%s): sweeps=%d, branches=%d, total=%d\n', ...
+    sweepLabel, sweepCount, nBranches, totalPoints);
 end
 
 function txt = buildRangeText(range, paramLabel)
@@ -2283,10 +2803,14 @@ function txt = formatNumericArray(values)
 txt = numericFormat('array', values);
 end
 
-function outliers = detectSuccessOutliers(attemptLog)
-outliers = struct('branchIdx',{},'attemptIndex',{},'value',{},'label',{},'primaryMetric',{},'secondaryMetric',{},'median',{},'scale',{},'deviation',{},'normalizedDeviation',{});
+function outliers = detectSuccessOutliers(attemptLog, outlierSigma)
+outliers = struct('branchIdx',{},'attemptIndex',{},'value',{},'label',{},'primaryMetric',{},'secondaryMetric',{}, ...
+    'metricField',{},'median',{},'scale',{},'deviation',{},'normalizedDeviation',{});
 if nargin == 0 || isempty(attemptLog)
     return
+end
+if nargin < 2 || isempty(outlierSigma) || ~isfinite(outlierSigma) || outlierSigma <= 0
+    outlierSigma = 3;
 end
 branchCount = 0;
 for idx = 1:numel(attemptLog)
@@ -2308,46 +2832,71 @@ for branchIdx = 1:branchCount
             continue
         end
         primaryVal = extractBranchValue(entry.solutionValues, branchIdx);
-        if ~isfinite(primaryVal)
+        secondaryVal = extractBranchValue(entry.secondaryValues, branchIdx);
+        if ~isfinite(primaryVal) && ~isfinite(secondaryVal)
             continue
         end
-        secondaryVal = extractBranchValue(entry.secondaryValues, branchIdx);
         values(end+1) = primaryVal; %#ok<AGROW>
         secValues(end+1) = secondaryVal; %#ok<AGROW>
         attemptIdxList(end+1) = attemptIdx; %#ok<AGROW>
         sweepVals(end+1) = normalizeSweepValue(entry.value); %#ok<AGROW>
         labels(end+1) = string(entry.label); %#ok<AGROW>
     end
-    if numel(values) < 3
-        continue
-    end
-    medVal = median(values);
-    absDev = abs(values - medVal);
-    madVal = median(absDev);
-    scale = 1.4826 * madVal;
-    if scale < 1e-9
-        scale = std(values, 1);
-    end
-    if scale < 1e-9
-        continue
-    end
-    threshold = 3 * scale;
-    for idx = 1:numel(values)
-        deviation = abs(values(idx) - medVal);
-        if deviation > threshold
-            entryStruct = struct( ...
-                'branchIdx', branchIdx, ...
-                'attemptIndex', attemptIdxList(idx), ...
-                'value', sweepVals(idx), ...
-                'label', labels(idx), ...
-                'primaryMetric', values(idx), ...
-                'secondaryMetric', secValues(idx), ...
-                'median', medVal, ...
-                'scale', scale, ...
-                'deviation', deviation, ...
-                'normalizedDeviation', deviation / scale);
-            outliers(end+1) = entryStruct; %#ok<AGROW>
-        end
+    [outliers, ~] = appendMetricOutliers(outliers, values, secValues, attemptIdxList, sweepVals, labels, branchIdx, outlierSigma, true);
+    [outliers, ~] = appendMetricOutliers(outliers, values, secValues, attemptIdxList, sweepVals, labels, branchIdx, outlierSigma, false);
+end
+end
+
+function [outliers, anyAdded] = appendMetricOutliers(outliers, values, secValues, attemptIdxList, sweepVals, labels, branchIdx, outlierSigma, usePrimary)
+anyAdded = false;
+if usePrimary
+    metricVals = values;
+else
+    metricVals = secValues;
+end
+
+function field = ternaryMetricField(usePrimary)
+if usePrimary
+    field = 'Cf_star';
+else
+    field = 'Nu_star';
+end
+end
+finiteMask = isfinite(metricVals);
+metricVals = metricVals(finiteMask);
+if numel(metricVals) < 3
+    return
+end
+medVal = median(metricVals);
+absDev = abs(metricVals - medVal);
+madVal = median(absDev);
+scale = 1.4826 * madVal;
+if scale < 1e-9
+    scale = std(metricVals, 1);
+end
+if scale < 1e-9
+    return
+end
+threshold = outlierSigma * scale;
+idxList = find(finiteMask);
+for k = 1:numel(idxList)
+    idx = idxList(k);
+    deviation = abs(metricVals(k) - medVal);
+    if deviation > threshold
+        entryStruct = struct( ...
+            'branchIdx', branchIdx, ...
+            'attemptIndex', attemptIdxList(idx), ...
+            'value', sweepVals(idx), ...
+            'label', labels(idx), ...
+            'primaryMetric', values(idx), ...
+            'secondaryMetric', secValues(idx), ...
+            'metricField', ternaryMetricField(usePrimary), ...
+            'median', medVal, ...
+            'scale', scale, ...
+            'deviation', deviation, ...
+            'normalizedDeviation', deviation / scale);
+        outliers(end+1) = entryStruct; %#ok<AGROW>
+        anyAdded = true;
     end
 end
 end
@@ -2381,8 +2930,14 @@ for idx = 1:numel(outliers)
     if strlength(string(labelTxt)) == 0
         labelTxt = sprintf('%s=%s', paramLabel, formatNumericToken(entry.value));
     end
-    emitRunLog('  Branch %d | attempt %d | %s | Cf=%s | deviation=%s (%sx)\n', ...
-        entry.branchIdx, entry.attemptIndex, labelTxt, formatNumericToken(entry.primaryMetric), ...
+    metricLabel = 'Cf';
+    metricVal = entry.primaryMetric;
+    if isfield(entry,'metricField') && strcmpi(entry.metricField, 'Nu_star')
+        metricLabel = 'Nu';
+        metricVal = entry.secondaryMetric;
+    end
+    emitRunLog('  Branch %d | attempt %d | %s | %s=%s | deviation=%s (%sx)\n', ...
+        entry.branchIdx, entry.attemptIndex, labelTxt, metricLabel, formatNumericToken(metricVal), ...
         formatNumericToken(entry.deviation), formatNumericToken(entry.normalizedDeviation));
 end
 

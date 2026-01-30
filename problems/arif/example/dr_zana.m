@@ -12,27 +12,40 @@ etaMax2 = 10;
 stepsize1 = 51;
 stepsize2 = 51;
 
+% Hybrid Nanofluid Al-Cu with based fluid EG
 p = struct();
-p.delta = 0.2;
-p.omega = 0.1;
-p.A = -1.2;
-p.M = 0.1;
-p.lambda = -0.160344827586;
-p.Pr = 6.2;
-p.Rd = 0.2;
-p.S = 0.1;
-p.Sl = 0.3;
-p.Bi = 0.2;
-p.alpha = pi/4;
+p.Bi = 0.2; % Biot Number
+p.A = -1.2; % Unsteady parameter
+p.M = 0.1; % Magnetic Field Parameter
+p.lambda = 0.5; % bouyancy parameter
+p.Rd = 0.2; % Radiation Parameter
+p.S = 2; % Suction/Injection Parameter
+p.Sl = 0.3; % Velocity Slip parameter
+p.alpha = pi/4; % Inclination Angle
+
+p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
+p.omega = 0.1; % Material parameter, Dimensionless heat transfer factor
+p.Pr = 204; % Prandtl Number, EG % Aminuddin impact of ...
 
 m = struct();
-m.phi1 = 0.01; m.phi2 = 0.01;
-m.phiHnf = m.phi1 + m.phi2;
-m.rhoS1 = 3970; m.rhoS2 = 8933; m.rhoF = 997.1;
-m.betaS1 = 0.85e-5; m.betaS2 = 1.67e-5; m.betaF = 21;
-m.sigmaS1 = 3.5e7; m.sigmaS2 = 5.96e7; m.sigmaF = 0.05;
-m.CpS1 = 765; m.CpS2 = 385; m.CpF = 4179;
-m.kS1 = 40; m.kS2 = 401; m.kF = 0.613;
+m.phi1 = 0.01; % Volume fraction for Alumina
+m.phi2 = 0.01; % Volume fraction for Copper
+m.phiHnf = m.phi1 + m.phi2; % Hybrid volume fraction
+m.rhoS1 = 3970; % Density of Alumina
+m.rhoS2 = 8933; % Density of Copper
+m.rhoF = 1114; % Density of EG
+m.betaS1 = 0.85e-5; % Thermal Expension of Al
+m.betaS2 = 1.67e-5; % Thermal Expension of Cu
+m.betaF = 57e-5; % Density of EG
+m.sigmaS1 = 3.5e7; % Surface tension of Al
+m.sigmaS2 = 5.96e7;  % Surface tension of Cu 
+m.sigmaF = 5.5e6;  % Surface tension of EG
+m.CpS1 = 765; % Heat capacity at constant pressure Al
+m.CpS2 = 385; % Heat capacity at constant pressure Cu
+m.CpF = 2415; % Heat capacity at constant pressure EG
+m.kS1 = 40; % Thermal Conductivity Al
+m.kS2 = 401; % Thermal Conductivity Cu
+m.kF = 0.252; % Thermal Conductivity EG
 
 n = struct();
 n.bMu = 1 / ((1 - m.phiHnf)^2.5);
@@ -83,32 +96,32 @@ fprintf('\n');
 
 options = bvpset('stats','off','RelTol',1e-10);
 solinit = bvpinit (linspace (etaMin, etaMax2, stepsize2), @OdeInit2);
-sol = bvp5c (@OdeBVP, @OdeBC, solinit, options);
+sol2 = bvp5c (@OdeBVP, @OdeBC, solinit, options);
 eta = linspace (etaMin, etaMax2, stepsize2);
-y = deval (sol, eta);
+y = deval (sol2, eta);
 
 figure(1)
-plot(sol.x,sol.y(2,:),'--r')
+plot(sol2.x,sol2.y(2,:),'--r')
 xlabel('\eta')
 ylabel('f`(\eta)')
 hold on
 
 figure(2)
-plot(sol.x,sol.y(4,:),'--r')
+plot(sol2.x,sol2.y(4,:),'--r')
 xlabel('\eta')
 ylabel('t(\eta)')
 hold on
 
 %Saving the output in txt file for second solution
-descris = [sol.x; sol.y];
+descris = [sol2.x; sol2.y];
 save 'lower.txt' descris -ascii
 
 %Displaying the output for second solution
 fprintf('\nSecond solution:\n');
 fprintf('f"(0) = %7.9f\n',y(3));
 fprintf('-t`(0) = %7.9f\n',-y(5));
-CfRe12 = localSkinFriction(sol, p, n);
-NuRe12 = nusseltNumberFn(sol, p, n);
+CfRe12 = localSkinFriction(sol2, p, n);
+NuRe12 = nusseltNumberFn(sol2, p, n);
 fprintf('Cf Re^{1/2} = %7.9f\n',CfRe12);
 fprintf('Nu Re^{-1/2} = %7.9f\n',NuRe12);
 fprintf('\n');
@@ -157,6 +170,22 @@ function res = OdeBC (ya, yb)
 function guess = OdeInit1 (x, p)
     global p
 
+
+    x = x(:).';
+    decay = exp(-x);
+    guess = [
+        p.S + (1 - decay);
+        decay;
+        -decay;
+        decay;
+        -decay
+        ];
+
+    %Setting the initial guess for second solution
+function guess = OdeInit2 (x, p)
+
+    global p
+
     x = x(:).';
     decay = exp(-x);
     guess = [
@@ -167,19 +196,6 @@ function guess = OdeInit1 (x, p)
         decay
         ];
 
-    %Setting the initial guess for second solution
-function guess = OdeInit2 (x, p)
-
-    global p
-    x = x(:).';
-    decay = exp(-x);
-    guess = [
-        p.S + (1 - decay);
-        decay;
-        -decay;
-        decay;
-        -decay
-        ];
 
 
 function CfRe12 = localSkinFriction(sol, p, n)

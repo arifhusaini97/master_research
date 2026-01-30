@@ -14,4 +14,5 @@ spec.absoluteTolerance = 1e-10;
 spec.minMeshPoints = 51;
 spec.domainGridSizeList = [51, 51];
 spec.maxMeshPoints = 60000;
+spec.improviseGuessAttempts = 5;
 end

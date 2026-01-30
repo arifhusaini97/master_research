@@ -87,6 +87,9 @@ function [sol, diagnostics] = collocationSolverBase(odeFun, bcFun, guessFcn, dom
             diagnostics.meshPoints = meshPoints;
             diagnostics.avgMeshStep = utils.averageMeshSpacing(solCandidate.x);
             diagnostics.maxResidual = utils.extractMaxResidual(solCandidate);
+            if ~isfinite(diagnostics.maxResidual)
+                diagnostics.maxResidual = computeMaxResidualFallback(odeFun, solCandidate);
+            end
             diagnostics.errorMessage = '';
             diagnostics.initialGuessError = utils.computeInitialGuessError(solCandidate, guessFcn);
             diagnostics.iterations = utils.extractIterationCount(solCandidate);
@@ -176,4 +179,32 @@ function flag = isCollocationWarning(warnId, solverName)
         solverName = 'bvp4c';
     end
     flag = ~isempty(warnId) && contains(lower(warnId), lower(string(solverName)));
+end
+
+function maxRes = computeMaxResidualFallback(odeFun, solStruct)
+maxRes = NaN;
+if isempty(solStruct) || ~isstruct(solStruct) || ~isfield(solStruct,'x') || ~isfield(solStruct,'y')
+    return
+end
+x = solStruct.x(:);
+y = solStruct.y;
+if isempty(x) || isempty(y) || numel(x) < 2
+    return
+end
+if size(y, 2) ~= numel(x)
+    y = y.';
+    if size(y, 2) ~= numel(x)
+        return
+    end
+end
+dy = zeros(size(y));
+for i = 1:size(y,1)
+    dy(i,:) = gradient(y(i,:), x);
+end
+f = zeros(size(y));
+for k = 1:numel(x)
+    f(:,k) = odeFun(x(k), y(:,k));
+end
+residual = dy - f;
+maxRes = max(abs(residual), [], 'all');
 end

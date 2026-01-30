@@ -65,6 +65,7 @@ function summary = runProblem(cfg, model, method, varargin)
 if nargin < 3 || isempty(method)
     method = struct();
 end
+startClock = tic;
 method = ensureMethodDefaults(method, cfg);
 opts = parseProblemRunOptions(varargin{:});
 cfg = ensureDomainDefaults(cfg);
@@ -96,6 +97,7 @@ end
 setappdata(0,'pehf_logCounter', 1);
 setappdata(0,'pehf_lineLogCounter', 1);
 setappdata(0,'pehf_figureLogCounter', 1);
+logPlannedTotalPoints(sweeps, cfg);
 
 sweepSummaries = repmat(struct('name',"", 'results',[], 'meta',[]), 1, numel(sweeps));
 figurePayloads = {};
@@ -172,6 +174,7 @@ summary.outputDir = outputDir;
 summary.sweeps = sweepSummaries;
 summary.figurePayloads = figurePayloads;
 summary.inputFiles = inputSnapshot;
+logRunSummary(sweepSummaries, figurePayloads, toc(startClock), sweeps, cfg);
 end
 
 function entries = buildPlannedSweepSummaries(sweeps)
@@ -232,6 +235,423 @@ if isstruct(arg)
     if isfield(arg,'persistFiguresAsImages') && ~isempty(arg.persistFiguresAsImages)
         opts.persistFiguresAsImages = logical(arg.persistFiguresAsImages);
     end
+end
+end
+
+function logRunSummary(sweepSummaries, figurePayloads, elapsedSeconds, sweeps, cfg)
+[successCount, failCount, skippedCount, attemptedCount, totalGivenDomain] = countAttemptOutcomes(sweepSummaries);
+plotStats = computeMetricPlotStats(figurePayloads);
+[plottedSuccess, plottedMissing] = countPlottedSolutions(figurePayloads);
+notPlottedSuccess = max(0, plotStats.expectedTotal - plotStats.plottedTotal);
+successRate = computeSuccessRate(successCount, totalGivenDomain);
+emitFactoryLog('Run duration: %s\n', formatElapsed(elapsedSeconds));
+emitFactoryLog('Total given domain: %d\n', totalGivenDomain);
+emitFactoryLog('Calculated solutions: %d\n', attemptedCount);
+emitFactoryLog('Successfuls: %d\n', successCount);
+emitFactoryLog('Fails: %d\n', failCount);
+emitFactoryLog('Skips: %d\n', skippedCount);
+emitFactoryLog('Success rate: %s\n', successRate);
+unaccounted = max(0, plotStats.expectedTotal - plotStats.plottedTotal - plottedMissing);
+emitFactoryLog('Plot rate (metric): %s | expected=%d plotted=%d missing=%d other=%d\n', ...
+    computeSuccessRate(plotStats.plottedTotal, plotStats.expectedTotal), ...
+    plotStats.expectedTotal, plotStats.plottedTotal, plottedMissing, unaccounted);
+emitFactoryLog('===========\n');
+logPerSweepSuccessRates(sweepSummaries, cfg, plotStats);
+end
+
+function totalPoints = computeTotalGivenDomain(sweeps, cfg)
+totalPoints = 0;
+if nargin < 2 || isempty(sweeps)
+    return
+end
+branchCount = 1;
+if isfield(cfg,'guesses') && ~isempty(cfg.guesses)
+    branchCount = max(1, numel(cfg.guesses));
+end
+for idx = 1:numel(sweeps)
+    sweepDef = sweeps(idx);
+    sweepCount = resolveSweepCount(sweepDef);
+    groupCount = resolveGroupCount(sweepDef);
+    totalPoints = totalPoints + sweepCount * groupCount * branchCount;
+end
+end
+
+function txt = computeSuccessRate(successCount, totalGivenDomain)
+if ~isfinite(totalGivenDomain) || totalGivenDomain <= 0
+    txt = 'N/A';
+    return
+end
+rate = 100 * (successCount / totalGivenDomain);
+txt = sprintf('%.2f%%', rate);
+end
+
+function logPerSweepSuccessRates(sweepSummaries, cfg, plotStats)
+if isempty(sweepSummaries)
+    return
+end
+branchCount = 1;
+if isfield(cfg,'guesses') && ~isempty(cfg.guesses)
+    branchCount = max(1, numel(cfg.guesses));
+end
+for idx = 1:numel(sweepSummaries)
+    sweepName = sweepSummaries(idx).name;
+    if strlength(string(sweepName)) == 0
+        sweepName = sprintf('sweep%d', idx);
+    end
+    if isfield(sweepSummaries(idx), 'groupSummaries') && ~isempty(sweepSummaries(idx).groupSummaries)
+        groups = sweepSummaries(idx).groupSummaries;
+        for g = 1:numel(groups)
+            label = groups(g).label;
+            meta = groups(g).meta;
+            logSingleSuccessRate(sweepName, label, meta, branchCount, plotStats);
+        end
+    else
+        meta = sweepSummaries(idx).meta;
+        logSingleSuccessRate(sweepName, '', meta, branchCount, plotStats);
+    end
+end
+end
+
+function logSingleSuccessRate(sweepName, groupLabel, meta, branchCount, plotStats)
+[successCount, failCount, skippedCount, attemptedCount, totalDomain] = countAttemptOutcomesMeta(meta);
+rateTxt = computeSuccessRate(successCount, totalDomain);
+plotKey = plotStatsKey(groupLabel);
+[expectedMetric, plottedMetric] = fetchPlotStats(plotStats, plotKey);
+plotRate = computeSuccessRate(plottedMetric, expectedMetric);
+
+labelTxt = formatSweepGroupLabel(sweepName, groupLabel);
+emitFactoryLog(' (%s) Attempts: %d\n', labelTxt, attemptedCount);
+emitFactoryLog('Success rate: %s | success=%d fail=%d skip=%d total=%d\n', ...
+    rateTxt, successCount, failCount, skippedCount, totalDomain);
+emitFactoryLog('  Plot rate (metric): %s | expected=%d plotted=%d\n', plotRate, expectedMetric, plottedMetric);
+end
+
+function labelTxt = formatSweepGroupLabel(sweepName, groupLabel)
+if strlength(string(groupLabel)) == 0
+    labelTxt = char(string(sweepName));
+else
+    labelTxt = sprintf('%s, %s', char(string(sweepName)), char(string(groupLabel)));
+end
+end
+
+function [successCount, failCount, skippedCount, attemptedCount, totalGivenDomain] = countAttemptOutcomesMeta(meta)
+successCount = 0;
+failCount = 0;
+skippedCount = 0;
+attemptedCount = 0;
+totalGivenDomain = 0;
+if ~isfield(meta,'attemptLog') || isempty(meta.attemptLog)
+    return
+end
+attemptLog = meta.attemptLog;
+for a = 1:numel(attemptLog)
+    entry = attemptLog(a);
+    statuses = {};
+    if isfield(entry,'branchStatus')
+        statuses = entry.branchStatus;
+    end
+    for b = 1:numel(statuses)
+        statusVal = '';
+        if ~isempty(statuses{b})
+            statusVal = lower(strtrim(string(statuses{b})));
+        end
+        if strlength(statusVal) == 0
+            continue
+        end
+        totalGivenDomain = totalGivenDomain + 1;
+        if isSkipAttempt(entry, b)
+            skippedCount = skippedCount + 1;
+            continue
+        end
+        attemptedCount = attemptedCount + 1;
+        if strcmp(statusVal, 'success')
+            successCount = successCount + 1;
+        else
+            failCount = failCount + 1;
+        end
+    end
+end
+end
+
+function [successCount, failCount, skippedCount, attemptedCount, totalGivenDomain] = countAttemptOutcomes(sweepSummaries)
+successCount = 0;
+failCount = 0;
+skippedCount = 0;
+attemptedCount = 0;
+totalGivenDomain = 0;
+for s = 1:numel(sweepSummaries)
+    if isfield(sweepSummaries(s), 'groupSummaries') && ~isempty(sweepSummaries(s).groupSummaries)
+        groups = sweepSummaries(s).groupSummaries;
+        for g = 1:numel(groups)
+            [sc, fc, sk, ac, td] = countAttemptOutcomesMeta(groups(g).meta);
+            successCount = successCount + sc;
+            failCount = failCount + fc;
+            skippedCount = skippedCount + sk;
+            attemptedCount = attemptedCount + ac;
+            totalGivenDomain = totalGivenDomain + td;
+        end
+        continue
+    end
+    [sc, fc, sk, ac, td] = countAttemptOutcomesMeta(sweepSummaries(s).meta);
+    successCount = successCount + sc;
+    failCount = failCount + fc;
+    skippedCount = skippedCount + sk;
+    attemptedCount = attemptedCount + ac;
+    totalGivenDomain = totalGivenDomain + td;
+end
+end
+
+function tf = isSkipAttempt(entry, branchIdx)
+tf = false;
+if ~isfield(entry,'errorMessages') || isempty(entry.errorMessages)
+    return
+end
+if branchIdx > numel(entry.errorMessages)
+    return
+end
+msg = string(entry.errorMessages{branchIdx});
+if strlength(msg) == 0
+    return
+end
+tf = contains(lower(msg), "skipped remaining");
+end
+
+function [plottedSuccess, plottedMissing] = countPlottedSolutions(figurePayloads)
+plottedSuccess = 0;
+plottedMissing = 0;
+if ~isempty(figurePayloads)
+    payloads = figurePayloads(:);
+    for idx = 1:numel(payloads)
+        entry = payloads{idx};
+        if isempty(entry) || ~isfield(entry,'lineSets')
+            continue
+        end
+        if isfield(entry,'mode') && ~strcmpi(string(entry.mode), 'metric')
+            continue
+        end
+        lineSets = entry.lineSets;
+        for ln = 1:numel(lineSets)
+            line = lineSets(ln);
+            if ~isfield(line,'x') || ~isfield(line,'y')
+                continue
+            end
+            xVals = line.x(:);
+            yVals = line.y(:);
+            if isempty(xVals) || isempty(yVals)
+                continue
+            end
+            validMask = isfinite(xVals) & isfinite(yVals);
+            plottedSuccess = plottedSuccess + sum(validMask);
+            plottedMissing = plottedMissing + sum(~validMask);
+        end
+    end
+end
+end
+
+function stats = computeMetricPlotStats(figurePayloads)
+stats = struct('expectedTotal', 0, 'plottedTotal', 0, 'entries', struct('key',{},'expected',{},'plotted',{}));
+if isempty(figurePayloads)
+    return
+end
+payloads = figurePayloads(:);
+for idx = 1:numel(payloads)
+    entry = payloads{idx};
+    if isempty(entry) || ~isfield(entry,'mode') || ~strcmpi(string(entry.mode), 'metric')
+        continue
+    end
+    if isfield(entry,'groupLogs') && ~isempty(entry.groupLogs)
+        logs = entry.groupLogs;
+        for g = 1:numel(logs)
+            key = plotStatsKey(logs(g).label);
+            expectedAdd = countExpectedMetricSuccessesFromLog(logs(g).attemptLog, entry.config, entry.branchCount);
+            plottedAdd = countPlottedMetricPoints(entry.lineSets, key);
+            [stats, statsIdx] = upsertPlotStats(stats, key);
+            stats.entries(statsIdx).expected = stats.entries(statsIdx).expected + expectedAdd;
+            stats.entries(statsIdx).plotted = stats.entries(statsIdx).plotted + plottedAdd;
+            stats.expectedTotal = stats.expectedTotal + expectedAdd;
+            stats.plottedTotal = stats.plottedTotal + plottedAdd;
+        end
+    else
+        key = plotStatsKey('');
+        expectedAdd = countExpectedMetricSuccessesFromLog(entry.attemptLog, entry.config, entry.branchCount);
+        plottedAdd = countPlottedMetricPoints(entry.lineSets, key);
+        [stats, statsIdx] = upsertPlotStats(stats, key);
+        stats.entries(statsIdx).expected = stats.entries(statsIdx).expected + expectedAdd;
+        stats.entries(statsIdx).plotted = stats.entries(statsIdx).plotted + plottedAdd;
+        stats.expectedTotal = stats.expectedTotal + expectedAdd;
+        stats.plottedTotal = stats.plottedTotal + plottedAdd;
+    end
+end
+end
+
+function [expected, plotted] = fetchPlotStats(stats, key)
+expected = 0;
+plotted = 0;
+if isempty(stats) || ~isfield(stats,'entries') || isempty(stats.entries)
+    return
+end
+for idx = 1:numel(stats.entries)
+    if strcmp(stats.entries(idx).key, key)
+        expected = stats.entries(idx).expected;
+        plotted = stats.entries(idx).plotted;
+        return
+    end
+end
+end
+
+function key = plotStatsKey(groupLabel)
+if strlength(string(groupLabel)) == 0
+    key = '__ungrouped__';
+    return
+end
+key = formatLegendLabel(groupLabel);
+key = char(strtrim(string(key)));
+end
+
+function [stats, idx] = upsertPlotStats(stats, key)
+idx = [];
+for k = 1:numel(stats.entries)
+    if strcmp(stats.entries(k).key, key)
+        idx = k;
+        return
+    end
+end
+idx = numel(stats.entries) + 1;
+stats.entries(idx).key = key;
+stats.entries(idx).expected = 0;
+stats.entries(idx).plotted = 0;
+end
+
+function count = countPlottedMetricPoints(lineSets, key)
+count = 0;
+if isempty(lineSets)
+    return
+end
+for ln = 1:numel(lineSets)
+    line = lineSets(ln);
+    if ~isfield(line,'x') || ~isfield(line,'y')
+        continue
+    end
+    groupLabel = '';
+    if isfield(line,'groupLabel') && ~isempty(line.groupLabel)
+        groupLabel = line.groupLabel;
+    end
+    if ~strcmp(plotStatsKey(groupLabel), key)
+        continue
+    end
+    xVals = line.x(:);
+    yVals = line.y(:);
+    if isempty(xVals) || isempty(yVals)
+        continue
+    end
+    validMask = isfinite(xVals) & isfinite(yVals);
+    count = count + sum(validMask);
+end
+end
+
+function count = countExpectedMetricSuccessesFromLog(attemptLog, cfg, branchCount)
+count = 0;
+if isempty(attemptLog)
+    return
+end
+branchIdx = 1:branchCount;
+if isfield(cfg,'branchIdx') && ~isempty(cfg.branchIdx)
+    branchIdx = cfg.branchIdx;
+end
+metricField = 'Cf_star';
+if isfield(cfg,'metricField') && ~isempty(cfg.metricField)
+    metricField = char(cfg.metricField);
+end
+for a = 1:numel(attemptLog)
+    entry = attemptLog(a);
+    statuses = {};
+    if isfield(entry,'branchStatus')
+        statuses = entry.branchStatus;
+    end
+    for b = branchIdx
+        if b < 1 || b > numel(statuses)
+            continue
+        end
+        statusVal = '';
+        if ~isempty(statuses{b})
+            statusVal = lower(strtrim(string(statuses{b})));
+        end
+        if ~strcmp(statusVal, 'success')
+            continue
+        end
+        metricVal = NaN;
+        if strcmpi(metricField, 'Nu_star')
+            metricVal = pickAttemptValue(entry.secondaryValues, b);
+        else
+            metricVal = pickAttemptValue(entry.solutionValues, b);
+        end
+        if isfinite(metricVal)
+            count = count + 1;
+        end
+    end
+end
+end
+
+function txt = formatElapsed(secondsVal)
+if ~isfinite(secondsVal) || secondsVal < 0
+    secondsVal = 0;
+end
+totalSeconds = round(secondsVal);
+hours = floor(totalSeconds / 3600);
+minutes = floor(mod(totalSeconds, 3600) / 60);
+seconds = mod(totalSeconds, 60);
+txt = sprintf('%02d:%02d:%02d', hours, minutes, seconds);
+end
+
+function logPlannedTotalPoints(sweeps, cfg)
+if nargin < 2
+    return
+end
+branchCount = 1;
+if isfield(cfg,'guesses') && ~isempty(cfg.guesses)
+    branchCount = max(1, numel(cfg.guesses));
+end
+totalPoints = 0;
+totalSweepValues = 0;
+totalGroups = 0;
+for idx = 1:numel(sweeps)
+    sweepDef = sweeps(idx);
+    sweepCount = resolveSweepCount(sweepDef);
+    groupCount = resolveGroupCount(sweepDef);
+    totalPoints = totalPoints + sweepCount * groupCount * branchCount;
+    totalSweepValues = totalSweepValues + sweepCount * groupCount;
+    totalGroups = totalGroups + groupCount;
+end
+emitFactoryLog('Planned total points: total=%d, sweeps=%d, groups=%d, branches=%d\n', ...
+    totalPoints, totalSweepValues, totalGroups, branchCount);
+end
+
+function sweepCount = resolveSweepCount(sweepDef)
+sweepCount = 1;
+values = [];
+if isfield(sweepDef,'options') && isstruct(sweepDef.options) && isfield(sweepDef.options,'sweep')
+    sweepCfg = sweepDef.options.sweep;
+    if isfield(sweepCfg,'values') && ~isempty(sweepCfg.values)
+        values = sweepCfg.values;
+    elseif isfield(sweepCfg,'range') && isfield(sweepCfg,'step')
+        values = sweepCfg.range(1):sweepCfg.step:sweepCfg.range(2);
+    end
+end
+if isempty(values)
+    sweepCount = 0;
+    return
+end
+if numel(values) == 1 && isnan(values(1))
+    sweepCount = 1;
+else
+    sweepCount = numel(values);
+end
+end
+
+function groupCount = resolveGroupCount(sweepDef)
+groupCount = 1;
+if isfield(sweepDef,'groupValues') && ~isempty(sweepDef.groupValues)
+    groupCount = numel(sweepDef.groupValues);
 end
 end
 
@@ -349,13 +769,14 @@ if isempty(payloads)
     info = struct('figureId',{},'figPath',{},'pngPath',{},'csvPath',{}); %#ok<NASGU>
     return
 end
+plotStatusLookup = buildPlotStatusLookup(payloads);
 figIds = cellfun(@(p) p.figureId, payloads);
 savedFigures = persistFigures(figIds, outDir, closeAfter);
 info = repmat(struct('figureId',NaN,'figPath','','pngPath','', 'csvPath',''), numel(payloads), 1);
 for idx = 1:numel(payloads)
     figId = payloads{idx}.figureId;
     match = savedFigures([savedFigures.figureId] == figId);
-    csvPath = persistFigureCsv(payloads{idx}, outDir);
+    csvPath = persistFigureCsv(payloads{idx}, outDir, plotStatusLookup);
     record = struct('figureId', figId, 'figPath', '', 'pngPath', '', 'csvPath', csvPath);
     if ~isempty(match)
         record.figPath = match(1).figPath;
@@ -427,9 +848,12 @@ for idx = 1:numel(figHandles)
 end
 end
 
-function csvPath = persistFigureCsv(figPayload, outDir)
+function csvPath = persistFigureCsv(figPayload, outDir, plotStatusLookup)
 figId = figPayload.figureId;
 cfg = figPayload.config;
+if nargin < 3
+    plotStatusLookup = struct();
+end
 csvPath = fullfile(outDir, sprintf('figure%d.csv', figId));
 fid = fopen(csvPath,'w');
 if fid < 0
@@ -521,7 +945,7 @@ if isfield(figPayload,'groupLogs') && ~isempty(figPayload.groupLogs)
         entry = figPayload.groupLogs(idx);
         figureLogIdx = fetchNextFigureLogIndex();
         emitFactoryLog('[F%dS] ***********************\n', figureLogIdx);
-        writeAttemptLogSection(fid, entry.attemptLog, figPayload.branchCount, entry.label, figPayload.config);
+        writeAttemptLogSection(fid, entry.attemptLog, figPayload.branchCount, entry.label, figPayload.config, plotStatusLookup, entry.successOutliers);
         if isfield(entry,'failRanges')
             writeContinuousRangeSection(fid, entry.failRanges, entry.label, 'fail');
         end
@@ -536,7 +960,7 @@ if isfield(figPayload,'groupLogs') && ~isempty(figPayload.groupLogs)
 elseif isfield(figPayload,'attemptLog') && ~isempty(figPayload.attemptLog)
     figureLogIdx = fetchNextFigureLogIndex();
     emitFactoryLog('[F%dS] ***********************\n', figureLogIdx);
-    writeAttemptLogSection(fid, figPayload.attemptLog, figPayload.branchCount, '', figPayload.config);
+    writeAttemptLogSection(fid, figPayload.attemptLog, figPayload.branchCount, '', figPayload.config, plotStatusLookup, figPayload.successOutliers);
     if isfield(figPayload,'failRanges')
         writeContinuousRangeSection(fid, figPayload.failRanges, '', 'fail');
     end
@@ -606,6 +1030,10 @@ end
 
 function [groupSummaries, combinedPayloads, primaryIdx] = runGroupedSweep(cfg, sweepDef, sweepOptions, model, method)
 paramName = sweepDef.groupParamName;
+paramScope = 'p';
+if isfield(sweepDef,'groupParamScope') && strlength(string(sweepDef.groupParamScope)) > 0
+    paramScope = lower(char(string(sweepDef.groupParamScope)));
+end
 groupVals = sweepDef.groupValues(:).';
 labelFcn = sweepDef.groupLabelFcn;
 numGroups = numel(groupVals);
@@ -615,7 +1043,14 @@ groupPayloads = cell(numGroups, numel(figConfigs));
 
 for g = 1:numGroups
     cfgGroup = cfg;
-    cfgGroup.p.(paramName) = groupVals(g);
+    if strcmp(paramScope, 'm')
+        cfgGroup.m.(paramName) = groupVals(g);
+        if isfield(cfgGroup,'deriveNFromM') && isa(cfgGroup.deriveNFromM, 'function_handle')
+            cfgGroup.n = cfgGroup.deriveNFromM(cfgGroup.m);
+        end
+    else
+        cfgGroup.p.(paramName) = groupVals(g);
+    end
     cfgGroup = ensureDomainDefaults(cfgGroup);
     if ~isfield(cfgGroup,'domainLabel') || isempty(cfgGroup.domainLabel) || strcmp(cfgGroup.domainLabel,'x')
         cfgGroup.domainLabel = getfieldWithDefault(sweepOptions,'domainLabel', cfg.domainLabel);
@@ -656,7 +1091,11 @@ for g = 1:numGroups
 end
 
 combinedPayloads = combineGroupFigurePayloads(figConfigs, groupPayloads, groupSummaries);
-primaryVal = cfg.p.(paramName);
+if strcmp(paramScope, 'm')
+    primaryVal = cfg.m.(paramName);
+else
+    primaryVal = cfg.p.(paramName);
+end
 [~,primaryIdx] = min(abs(groupVals - primaryVal));
 if isempty(primaryIdx) || isnan(primaryIdx)
     primaryIdx = 1;
@@ -923,9 +1362,15 @@ catch
 end
 end
 
-function writeAttemptLogSection(fid, attemptLog, branchCount, label, figCfg)
+function writeAttemptLogSection(fid, attemptLog, branchCount, label, figCfg, plotStatusLookup, successOutliers)
 if isempty(attemptLog)
     return
+end
+if nargin < 6
+    plotStatusLookup = struct();
+end
+if nargin < 7
+    successOutliers = [];
 end
 if nargin < 4 || strlength(string(label)) == 0
     sectionKey = 'attempt_log';
@@ -935,45 +1380,57 @@ end
 writeCsvRow(fid, {'section', sectionKey});
 
 branchCount = max(branchCount, 1);
-header = {'attempt_index','sweep_value','sweep_label','all_branches_success','branches_deviation','branches_deviation_cf','branches_deviation_nu'};
+header = {'attempt_index','sweep_value'};
 for b = 1:branchCount
     primaryLabel = buildMetricColumnLabel(attemptLog, b, 'primaryMetricLabels', 'primary_metric');
     secondaryLabel = buildMetricColumnLabel(attemptLog, b, 'secondaryMetricLabels', 'secondary_metric');
     header = [header, ...
-        sprintf('B%d_status', b), ...
-        sprintf('B%d_configured_step', b), ...
-        sprintf('B%d_sweep_step', b), ...
-        sprintf('B%d_avg_mesh_step', b), ...
-        sprintf('B%d_max_residual', b), ...
-        sprintf('B%d_error_message', b), ...
         sprintf('B%d_state', b), ...
         sprintf('B%d_fpp0', b), ...
         sprintf('B%d_neg_thp0', b), ...
-        sprintf('B%d_initial_guess_error', b), ...
-        sprintf('B%d_iterations', b), ...
         sprintf('B%d_%s', b, primaryLabel), ...
         sprintf('B%d_%s', b, secondaryLabel), ...
+        sprintf('B%d_primary_rate', b), ...
+        sprintf('B%d_secondary_rate', b)]; %#ok<AGROW>
+end
+header = [header, {'sweep_label','all_branches_success', ...
+    'plot_b1_primary','plot_b2_primary','plot_b1_secondary','plot_b2_secondary', ...
+    'plot_b1_primary_message','plot_b2_primary_message','plot_b1_secondary_message','plot_b2_secondary_message', ...
+    'branches_deviation','branches_deviation_cf','branches_deviation_nu'}];
+for b = 1:branchCount
+    header = [header, ...
+        sprintf('B%d_configured_step', b), ...
+        sprintf('B%d_sweep_step', b), ...
+        sprintf('B%d_iterations', b), ...
+        sprintf('B%d_avg_mesh_step', b), ...
+        sprintf('B%d_max_residual', b), ...
+        sprintf('B%d_initial_guess_profile', b), ...
         sprintf('B%d_initial_guess_mesh', b), ...
-        sprintf('B%d_initial_guess_profile', b)]; %#ok<AGROW>
+        sprintf('B%d_initial_guess_error', b), ...
+        sprintf('B%d_absolute_error', b), ...
+        sprintf('B%d_relative_error', b), ...
+        sprintf('B%d_status', b), ...
+        sprintf('B%d_error_message', b)]; %#ok<AGROW>
 end
 writeCsvRow(fid, header);
 
 for idx = 1:numel(attemptLog)
     attempt = attemptLog(idx);
-    row = {idx, attempt.value, attempt.label, logical(getfieldWithDefault(attempt, 'allBranchesSuccess', false)), ...
-        getfieldWithDefault(attempt, 'branchesDeviation', NaN), ...
-        getfieldWithDefault(attempt, 'branchesDeviationPrimary', NaN), ...
-        getfieldWithDefault(attempt, 'branchesDeviationSecondary', NaN)};
+    row = {idx, attempt.value};
     statuses = attempt.branchStatus;
     cfgSteps = attempt.stepSizes;
     sweepSteps = attempt.sweepSteps;
     avgSteps = attempt.avgMeshSteps;
     residuals = attempt.maxResiduals;
+    absErrors = getfieldWithDefault(attempt, 'absoluteErrors', []);
+    relErrors = getfieldWithDefault(attempt, 'relativeErrors', []);
     errors = attempt.errorMessages;
     guessErrors = attempt.initialGuessErrors;
     iterCounts = attempt.iterations;
     solVals = attempt.solutionValues;
     secVals = attempt.secondaryValues;
+    primaryRates = getfieldWithDefault(attempt, 'primaryRates', []);
+    secondaryRates = getfieldWithDefault(attempt, 'secondaryRates', []);
     meshCells = attempt.initialGuessMesh;
     profileCells = attempt.initialGuessProfiles;
     for b = 1:branchCount
@@ -981,10 +1438,15 @@ for idx = 1:numel(attemptLog)
         if b <= numel(statuses) && ~isempty(statuses{b})
             statusVal = statuses{b};
         end
+        if isSkipMessage(fetchAttemptCell(errors, b))
+            statusVal = NaN;
+        end
         cfgVal = pickAttemptValue(cfgSteps, b);
         sweepStep = pickAttemptValue(sweepSteps, b);
         avgVal = pickAttemptValue(avgSteps, b);
         resVal = pickAttemptValue(residuals, b);
+        absErrVal = pickAttemptValue(absErrors, b);
+        relErrVal = pickAttemptValue(relErrors, b);
         errVal = '';
         if b <= numel(errors)
             errVal = errors{b};
@@ -996,14 +1458,58 @@ for idx = 1:numel(attemptLog)
         iterVal = pickAttemptValue(iterCounts, b);
         solVal = pickAttemptValue(solVals, b);
         secVal = pickAttemptValue(secVals, b);
+        primaryRate = pickAttemptValue(primaryRates, b);
+        secondaryRate = pickAttemptValue(secondaryRates, b);
         meshTxt = formatGuessArrayForExport(fetchAttemptCell(meshCells, b));
         profileTxt = formatGuessArrayForExport(fetchAttemptCell(profileCells, b));
-        row = [row, {statusVal, cfgVal, sweepStep, avgVal, resVal, errVal, stateTxt, fpp0Val, negThp0Val, guessErr, iterVal, solVal, secVal, meshTxt, profileTxt}]; %#ok<AGROW>
+        row = [row, {stateTxt, fpp0Val, negThp0Val, solVal, secVal, primaryRate, secondaryRate}]; %#ok<AGROW>
+    end
+    [plotB1Primary, plotB2Primary, plotB1Secondary, plotB2Secondary] = resolvePlotStatusFlags(plotStatusLookup, label, attempt.value);
+    msgB1Primary = buildPlotStatusReason(plotStatusLookup, label, attempt, idx, 1, 'Cf_star', plotB1Primary, figCfg, successOutliers);
+    msgB2Primary = buildPlotStatusReason(plotStatusLookup, label, attempt, idx, 2, 'Cf_star', plotB2Primary, figCfg, successOutliers);
+    msgB1Secondary = buildPlotStatusReason(plotStatusLookup, label, attempt, idx, 1, 'Nu_star', plotB1Secondary, figCfg, successOutliers);
+    msgB2Secondary = buildPlotStatusReason(plotStatusLookup, label, attempt, idx, 2, 'Nu_star', plotB2Secondary, figCfg, successOutliers);
+    row = [row, {attempt.label, logical(getfieldWithDefault(attempt, 'allBranchesSuccess', false)), ...
+        plotB1Primary, plotB2Primary, plotB1Secondary, plotB2Secondary, ...
+        msgB1Primary, msgB2Primary, msgB1Secondary, msgB2Secondary, ...
+        getfieldWithDefault(attempt, 'branchesDeviation', NaN), ...
+        getfieldWithDefault(attempt, 'branchesDeviationPrimary', NaN), ...
+        getfieldWithDefault(attempt, 'branchesDeviationSecondary', NaN)}];
+    for b = 1:branchCount
+        statusVal = '';
+        if b <= numel(statuses) && ~isempty(statuses{b})
+            statusVal = statuses{b};
+        end
+        if isSkipMessage(fetchAttemptCell(errors, b))
+            statusVal = NaN;
+        end
+        cfgVal = pickAttemptValue(cfgSteps, b);
+        sweepStep = pickAttemptValue(sweepSteps, b);
+        avgVal = pickAttemptValue(avgSteps, b);
+        resVal = pickAttemptValue(residuals, b);
+        errVal = '';
+        if b <= numel(errors)
+            errVal = errors{b};
+        end
+        guessErr = pickAttemptValue(guessErrors, b);
+        iterVal = pickAttemptValue(iterCounts, b);
+        meshTxt = formatGuessArrayForExport(fetchAttemptCell(meshCells, b));
+        profileTxt = formatGuessArrayForExport(fetchAttemptCell(profileCells, b));
+        row = [row, {cfgVal, sweepStep, iterVal, avgVal, resVal, profileTxt, meshTxt, guessErr, absErrVal, relErrVal, statusVal, errVal}]; %#ok<AGROW>
     end
     writeCsvRow(fid, row);
 end
 writeCsvRow(fid, {''});
 logAttemptEntries(figCfg, label, attemptLog, branchCount);
+end
+
+function tf = isSkipMessage(msg)
+tf = false;
+if strlength(string(msg)) == 0
+    return
+end
+msgLower = lower(string(msg));
+tf = contains(msgLower, "skipped remaining");
 end
 
 function writeContinuousRangeSection(fid, ranges, label, statusKey)
@@ -1052,12 +1558,13 @@ else
     sectionKey = sprintf('success_outliers_%s', sanitizeSectionLabel(label));
 end
 writeCsvRow(fid, {'section', sectionKey});
-header = {'attempt_index','branch','sweep_value','sweep_label','primary_metric','secondary_metric','deviation','normalized_deviation','median','scale'};
+header = {'attempt_index','branch','sweep_value','sweep_label','metric_field','primary_metric','secondary_metric','deviation','normalized_deviation','median','scale'};
 writeCsvRow(fid, header);
 for idx = 1:numel(outliers)
     entry = outliers(idx);
     sweepLabel = formatRangeLabel(entry.label);
-    row = {entry.attemptIndex, entry.branchIdx, entry.value, sweepLabel, entry.primaryMetric, entry.secondaryMetric, entry.deviation, entry.normalizedDeviation, entry.median, entry.scale};
+    metricField = getfieldWithDefault(entry, 'metricField', '');
+    row = {entry.attemptIndex, entry.branchIdx, entry.value, sweepLabel, metricField, entry.primaryMetric, entry.secondaryMetric, entry.deviation, entry.normalizedDeviation, entry.median, entry.scale};
     writeCsvRow(fid, row);
 end
 writeCsvRow(fid, {''});
@@ -1693,4 +2200,377 @@ if isnumeric(xq) && isscalar(xq)
 else
     yq = yInterp;
 end
+end
+
+function reason = buildPlotStatusReason(plotStatusLookup, label, attempt, attemptIdx, branchIdx, metricField, isPlotted, figCfg, successOutliers)
+reason = '';
+if isPlotted
+    return
+end
+if nargin < 4
+    attemptIdx = NaN;
+end
+if nargin < 5
+    branchIdx = 1;
+end
+if nargin < 6 || strlength(string(metricField)) == 0
+    metricField = 'Cf_star';
+end
+if nargin < 7
+    isPlotted = false;
+end
+if nargin < 8
+    figCfg = struct();
+end
+if nargin < 9
+    successOutliers = [];
+end
+if isempty(plotStatusLookup)
+    reason = 'no_plot_data';
+    return
+end
+groupLabel = normalizePlotGroupLabel(label);
+if isempty(findPlotStatusGroup(plotStatusLookup, groupLabel))
+    reason = 'group_not_found';
+    return
+end
+statusVal = '';
+if isfield(attempt,'branchStatus') && branchIdx <= numel(attempt.branchStatus)
+    statusVal = lower(strtrim(string(attempt.branchStatus{branchIdx})));
+end
+errMsg = '';
+if isfield(attempt,'errorMessages') && branchIdx <= numel(attempt.errorMessages)
+    errMsg = string(attempt.errorMessages{branchIdx});
+end
+if isSkipMessage(errMsg)
+    reason = 'skipped';
+    return
+end
+if strlength(statusVal) == 0 || ~strcmp(statusVal, 'success')
+    reason = 'solver_failed';
+    return
+end
+metricVal = pickAttemptMetricValue(attempt, branchIdx, metricField);
+if ~isfinite(metricVal)
+    reason = 'metric_missing';
+    return
+end
+if shouldHideZeroDeviationFromCfg(figCfg)
+    if isZeroDeviationAttempt(attempt, metricField, figCfg)
+        reason = 'zero_deviation_filtered';
+        return
+    end
+end
+if isOutlierFilteredAttempt(attempt, attemptIdx, branchIdx, metricField, metricVal, successOutliers, figCfg)
+    reason = 'outlier_filtered';
+    return
+end
+reason = 'not_plotted';
+end
+
+function val = pickAttemptMetricValue(attempt, branchIdx, metricField)
+val = NaN;
+if strcmpi(metricField, 'Nu_star')
+    val = pickAttemptValue(getfieldWithDefault(attempt, 'secondaryValues', []), branchIdx);
+else
+    val = pickAttemptValue(getfieldWithDefault(attempt, 'solutionValues', []), branchIdx);
+end
+end
+
+function tf = isZeroDeviationAttempt(attempt, metricField, figCfg)
+tf = false;
+if nargin < 3
+    figCfg = struct();
+end
+if strcmpi(metricField, 'Nu_star')
+    vals = getfieldWithDefault(attempt, 'secondaryValues', []);
+else
+    vals = getfieldWithDefault(attempt, 'solutionValues', []);
+end
+vals = vals(isfinite(vals));
+if numel(vals) < 2
+    return
+end
+deviation = computeBranchesDeviationForPlot(vals);
+tol = getZeroDeviationToleranceFromCfg(figCfg, vals);
+if isfinite(deviation) && deviation <= tol
+    tf = true;
+end
+end
+
+function deviation = computeBranchesDeviationForPlot(values)
+deviation = NaN;
+if isempty(values)
+    return
+end
+vals = values(isfinite(values));
+if numel(vals) < 2
+    return
+end
+numVals = numel(vals);
+pairs = [];
+for i = 1:numVals-1
+    for j = i+1:numVals
+        pairs(end+1) = abs(vals(i) - vals(j)); %#ok<AGROW>
+    end
+end
+if isempty(pairs)
+    return
+end
+deviation = mean(pairs);
+end
+
+function tf = shouldHideZeroDeviationFromCfg(figCfg)
+tf = false;
+if nargin < 1 || ~isstruct(figCfg)
+    return
+end
+if isfield(figCfg,'plotZeroDeviation') && ~isempty(figCfg.plotZeroDeviation)
+    val = figCfg.plotZeroDeviation;
+    if islogical(val) && isscalar(val)
+        tf = ~val;
+    elseif isnumeric(val) && isscalar(val)
+        tf = (val == 0);
+    end
+end
+end
+
+function tol = getZeroDeviationToleranceFromCfg(figCfg, vals)
+tol = 1e-6;
+if nargin < 1 || ~isstruct(figCfg)
+    return
+end
+if isfield(figCfg,'zeroDeviationTolerance') && ~isempty(figCfg.zeroDeviationTolerance)
+    candidate = figCfg.zeroDeviationTolerance;
+    if isnumeric(candidate) && isscalar(candidate) && isfinite(candidate) && candidate >= 0
+        tol = candidate;
+    end
+end
+if nargin >= 2 && ~isempty(vals)
+    tol = max(tol, tol * max(1, max(abs(vals))));
+end
+end
+
+function tf = isOutlierFilteredAttempt(attempt, attemptIdx, branchIdx, metricField, metricVal, successOutliers, figCfg)
+tf = false;
+if isempty(successOutliers)
+    return
+end
+if shouldPlotOutliersFromCfg(figCfg)
+    return
+end
+filterMode = getOutlierFilterModeFromCfg(figCfg);
+restrictToBranch = shouldRestrictOutliersForPlot(filterMode);
+outlierXY = [];
+for k = 1:numel(successOutliers)
+    entry = successOutliers(k);
+    if ~isfield(entry,'value') || ~isfield(entry,'branchIdx')
+        continue
+    end
+    if restrictToBranch && isfinite(branchIdx) && entry.branchIdx ~= branchIdx
+        continue
+    end
+    if strcmpi(metricField, 'Nu_star')
+        if ~isfield(entry,'secondaryMetric')
+            continue
+        end
+        yVal = entry.secondaryMetric;
+    else
+        if ~isfield(entry,'primaryMetric')
+            continue
+        end
+        yVal = entry.primaryMetric;
+    end
+    if isfinite(entry.value) && isfinite(yVal)
+        outlierXY(end+1,:) = [entry.value, yVal]; %#ok<AGROW>
+    end
+end
+if isempty(outlierXY)
+    return
+end
+tol = 1e-9 * max(1, max(abs([metricVal, attempt.value])));
+dx = abs(outlierXY(:,1) - attempt.value);
+dy = abs(outlierXY(:,2) - metricVal);
+tf = any(dx <= tol & dy <= tol);
+if tf
+    return
+end
+if isfinite(attemptIdx)
+    for k = 1:numel(successOutliers)
+        entry = successOutliers(k);
+        if ~isfield(entry,'attemptIndex') || ~isfield(entry,'branchIdx')
+            continue
+        end
+        if entry.attemptIndex ~= attemptIdx
+            continue
+        end
+        if restrictToBranch && entry.branchIdx ~= branchIdx
+            continue
+        end
+        tf = true;
+        return
+    end
+end
+end
+
+function tf = shouldPlotOutliersFromCfg(figCfg)
+tf = false;
+if nargin < 1 || ~isstruct(figCfg) || ~isfield(figCfg,'showOutliers')
+    return
+end
+val = figCfg.showOutliers;
+if islogical(val) && isscalar(val)
+    tf = val;
+elseif isnumeric(val) && isscalar(val)
+    tf = (val ~= 0);
+elseif isstring(val) && isscalar(val)
+    tf = any(strcmpi(strtrim(val), ["true","1","yes","on"]));
+elseif ischar(val)
+    tf = any(strcmpi(strtrim(string(val)), ["true","1","yes","on"]));
+end
+end
+
+function mode = getOutlierFilterModeFromCfg(figCfg)
+mode = 'global';
+if nargin < 1 || ~isstruct(figCfg)
+    return
+end
+if isfield(figCfg,'outlierFilter') && ~isempty(figCfg.outlierFilter)
+    mode = char(string(figCfg.outlierFilter));
+end
+end
+
+function tf = shouldRestrictOutliersForPlot(filterMode)
+mode = lower(strtrim(char(string(filterMode))));
+tf = any(strcmp(mode, {'branch','per-branch','per_branch','perbranch'}));
+end
+
+function lookup = buildPlotStatusLookup(payloads)
+lookup = struct('label',{},'primary',{},'secondary',{});
+if isempty(payloads)
+    return
+end
+payloads = payloads(:);
+for idx = 1:numel(payloads)
+    payload = payloads{idx};
+    if isempty(payload) || ~isfield(payload,'mode') || ~strcmpi(string(payload.mode), 'metric')
+        continue
+    end
+    if ~isfield(payload,'config') || ~isfield(payload.config,'metricField')
+        continue
+    end
+    metricField = char(string(payload.config.metricField));
+    if ~(strcmpi(metricField, 'Cf_star') || strcmpi(metricField, 'Nu_star'))
+        continue
+    end
+    lineSets = payload.lineSets;
+    if isempty(lineSets)
+        continue
+    end
+    for ln = 1:numel(lineSets)
+        line = lineSets(ln);
+        if ~isfield(line,'branchIdx') || ~isfield(line,'x') || ~isfield(line,'y')
+            continue
+        end
+        branchIdx = line.branchIdx;
+        groupLabel = '';
+        if isfield(line,'groupLabel') && ~isempty(line.groupLabel)
+            groupLabel = line.groupLabel;
+        end
+        groupLabel = normalizePlotGroupLabel(groupLabel);
+        [lookup, groupIdx] = upsertPlotStatusGroup(lookup, groupLabel);
+        if strcmpi(metricField, 'Cf_star')
+            lookup(groupIdx).primary = appendPlotValues(lookup(groupIdx).primary, branchIdx, line.x, line.y);
+        else
+            lookup(groupIdx).secondary = appendPlotValues(lookup(groupIdx).secondary, branchIdx, line.x, line.y);
+        end
+    end
+end
+end
+
+function [plotB1Primary, plotB2Primary, plotB1Secondary, plotB2Secondary] = resolvePlotStatusFlags(lookup, label, sweepValue)
+plotB1Primary = false;
+plotB2Primary = false;
+plotB1Secondary = false;
+plotB2Secondary = false;
+if isempty(lookup) || ~isfinite(sweepValue)
+    return
+end
+groupLabel = normalizePlotGroupLabel(label);
+groupIdx = findPlotStatusGroup(lookup, groupLabel);
+if isempty(groupIdx)
+    return
+end
+primary = lookup(groupIdx).primary;
+secondary = lookup(groupIdx).secondary;
+plotB1Primary = isValuePlotted(fetchPlotValues(primary, 1), sweepValue);
+plotB2Primary = isValuePlotted(fetchPlotValues(primary, 2), sweepValue);
+plotB1Secondary = isValuePlotted(fetchPlotValues(secondary, 1), sweepValue);
+plotB2Secondary = isValuePlotted(fetchPlotValues(secondary, 2), sweepValue);
+end
+
+function labelOut = normalizePlotGroupLabel(labelIn)
+if strlength(string(labelIn)) == 0
+    labelOut = '';
+else
+    labelOut = formatLegendLabel(labelIn);
+end
+end
+
+function idx = findPlotStatusGroup(lookup, groupLabel)
+idx = [];
+for k = 1:numel(lookup)
+    if strcmp(lookup(k).label, groupLabel)
+        idx = k;
+        return
+    end
+end
+end
+
+function [lookup, idx] = upsertPlotStatusGroup(lookup, groupLabel)
+idx = findPlotStatusGroup(lookup, groupLabel);
+if ~isempty(idx)
+    return
+end
+idx = numel(lookup) + 1;
+lookup(idx).label = groupLabel;
+lookup(idx).primary = {};
+lookup(idx).secondary = {};
+end
+
+function values = fetchPlotValues(cellVals, branchIdx)
+values = [];
+if isempty(cellVals) || branchIdx < 1 || branchIdx > numel(cellVals)
+    return
+end
+values = cellVals{branchIdx};
+end
+
+function cellVals = appendPlotValues(cellVals, branchIdx, xVals, yVals)
+if nargin < 4 || isempty(xVals) || isempty(yVals) || branchIdx < 1 || ~isfinite(branchIdx)
+    return
+end
+mask = isfinite(xVals) & isfinite(yVals);
+if ~any(mask)
+    return
+end
+values = xVals(mask);
+values = values(:);
+if isempty(cellVals)
+    cellVals = {};
+end
+if branchIdx > numel(cellVals)
+    cellVals{branchIdx} = [];
+end
+cellVals{branchIdx} = unique([cellVals{branchIdx}(:); values]);
+end
+
+function tf = isValuePlotted(values, target)
+tf = false;
+if isempty(values) || ~isfinite(target)
+    return
+end
+values = values(:);
+tol = 1e-8 * max(1, max(abs([values; target])));
+tf = any(abs(values - target) <= tol);
 end
