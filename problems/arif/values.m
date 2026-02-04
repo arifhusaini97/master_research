@@ -4,31 +4,48 @@ function values = values()
 % is right
 % sweep: (1) change inclination angle pi/3 (tak dpt 2nd sol), pi/4, pi/6 (Anuar)
 
-values = struct();
+
+% Hybrid Nanofluid Al-Cu with based fluid EG
+
+% Hybrid Nanofluid Al-Cu with based fluid EG
 p = struct();
-p.delta = 0.2;
-p.omega = 0.1;
-p.A = -1.2;
-p.M = 0.1;
-p.lambda = -0.1;
-p.Pr = 204; %EG
-p.Rd = 0.2;
-p.S = 2;
-p.Sl = 0.3;
-p.Bi = 0.2;
-p.alpha = pi/4;
+p.Bi = 0.2; % Biot Number
+p.A = -1.2; % Unsteady parameter
+p.M = 0.1; % Magnetic Field Parameter
+p.lambda = 0.5; % bouyancy parameter
+p.Rd = 0.2; % Radiation Parameter
+p.S = 2; % Suction/Injection Parameter
+p.Sl = 0.3; % Velocity Slip parameter
+p.alpha = pi/4; % Inclination Angle
+
+p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
+p.omega = 0.1; % Material parameter, Dimensionless heat transfer factor
+p.Pr = 204; % Prandtl Number, EG % Aminuddin impact of ...
 
 m = struct();
-m.phi1 = 0.01; m.phi2 = 0.01;
-m.phiHnf = m.phi1 + m.phi2;
-m.rhoS1 = 3970; m.rhoS2 = 8933; m.rhoF = 997.1;
-m.betaS1 = 0.85e-5; m.betaS2 = 1.67e-5; m.betaF = 57e-5; %EG
-m.sigmaS1 = 3.5e7; m.sigmaS2 = 5.96e7; m.sigmaF = 0.05;
-m.CpS1 = 765; m.CpS2 = 385; m.CpF = 4179;
-m.kS1 = 40; m.kS2 = 401; m.kF = 0.613;
+m.phi1 = 0.01; % Volume fraction for Alumina
+m.phi2 = 0.01; % Volume fraction for Copper
+m.phiHnf = m.phi1 + m.phi2; % Hybrid volume fraction
+m.rhoS1 = 3970; % Density of Alumina
+m.rhoS2 = 8933; % Density of Copper
+m.rhoF = 1114; % Density of EG
+m.betaS1 = 0.85e-5; % Thermal Expension of Al
+m.betaS2 = 1.67e-5; % Thermal Expension of Cu
+m.betaF = 57e-5; % Density of EG
+% m.sigmaS1 = 3.5e7; % Electrical conductivity of Al metal
+m.sigmaS1 = 0; % Electrical conductivity of Al
+m.sigmaS2 = 5.96e7;  % Electrical conductivity of Cu
+m.sigmaF = 5.5e-6;  % Electrical conductivity of EG
+m.CpS1 = 765; % Heat capacity at constant pressure Al
+m.CpS2 = 385; % Heat capacity at constant pressure Cu
+m.CpF = 2415; % Heat capacity at constant pressure EG
+m.kS1 = 40; % Thermal Conductivity Al
+m.kS2 = 401; % Thermal Conductivity Cu
+m.kF = 0.252; % Thermal Conductivity EG
 
 n = deriveNFromM(m);
 
+values = struct();
 values.p = p;
 values.m = m;
 values.n = n;

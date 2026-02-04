@@ -8,20 +8,21 @@ global p m n
 %Boundary layer thickness & stepsize
 etaMin = 0;
 etaMax1 = 10;
-etaMax2 = 10;
+etaMax2 = 20;
 stepsize1 = 51;
 stepsize2 = 51;
 
 % Hybrid Nanofluid Al-Cu with based fluid EG
 p = struct();
-p.Bi = 0.2; % Biot Number
+p.Bi = 0.5; % Biot Number
 p.A = -1.2; % Unsteady parameter
 p.M = 0.1; % Magnetic Field Parameter
-p.lambda = 0.5; % bouyancy parameter
+p.lambda = -1; % bouyancy parameter
 p.Rd = 0.2; % Radiation Parameter
-p.S = 2; % Suction/Injection Parameter
-p.Sl = 0.3; % Velocity Slip parameter
+p.S = 1; % Suction/Injection Parameter
+p.Sl = 0.5; % Velocity Slip parameter
 p.alpha = pi/4; % Inclination Angle
+p.L=-1; % Sheet velocity parameter: +1 for stretching, -1 for shrinking
 
 p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
 p.omega = 0.1; % Material parameter, Dimensionless heat transfer factor
@@ -36,10 +37,11 @@ m.rhoS2 = 8933; % Density of Copper
 m.rhoF = 1114; % Density of EG
 m.betaS1 = 0.85e-5; % Thermal Expension of Al
 m.betaS2 = 1.67e-5; % Thermal Expension of Cu
-m.betaF = 57e-5; % Density of EG
-m.sigmaS1 = 3.5e7; % Surface tension of Al
-m.sigmaS2 = 5.96e7;  % Surface tension of Cu 
-m.sigmaF = 5.5e6;  % Surface tension of EG
+m.betaF = 5.7e-4; % Density of EG
+% m.sigmaS1 = 3.5e7; % Electrical conductivity of Al2O3
+m.sigmaS1 = 1e-10; % Electrical conductivity of Al2O3 insulator
+m.sigmaS2 = 5.96e7;  % Electrical conductivity of Cu 
+m.sigmaF = 5.5e-6;  % Electrical conductivity of EG
 m.CpS1 = 765; % Heat capacity at constant pressure Al
 m.CpS2 = 385; % Heat capacity at constant pressure Cu
 m.CpF = 2415; % Heat capacity at constant pressure EG
@@ -60,7 +62,7 @@ n.bK = (((m.phi1*m.kS1 + m.phi2*m.kS2)/m.phiHnf) + 2*m.kF + 2*(m.phi1*m.kS1 + m.
 
 %%%%%%%%%%%%%%%%%%%%%%   first solution   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-options = bvpset('stats','off','RelTol',1e-10);
+options =  bvpset('stats','off','RelTol',1e-6,'AbsTol',1e-8);
 solinit = bvpinit (linspace (etaMin, etaMax1, stepsize1), @OdeInit1);
 sol = bvp5c (@OdeBVP, @OdeBC, solinit, options);
 eta = linspace (etaMin, etaMax1, stepsize1);
@@ -160,7 +162,7 @@ function res = OdeBC (ya, yb)
 
 
     res = [ ya(1)-p.S
-        ya(2)-1-p.Sl*ya(3)
+        ya(2)- p.L-p.Sl*ya(3)
         %ya(4)-1
         ya(5)+p.Bi*(1-ya(4))
         yb(2)
@@ -173,13 +175,11 @@ function guess = OdeInit1 (x, p)
 
     x = x(:).';
     decay = exp(-x);
-    guess = [
-        p.S + (1 - decay);
-        decay;
-        -decay;
-        decay;
-        -decay
-        ];
+    guess = [p.S + (1 - decay); ...
+         1.0 * decay; ...
+        -1.0 * decay; ...
+         ones(size(decay)); ...
+        -0.5 * decay];
 
     %Setting the initial guess for second solution
 function guess = OdeInit2 (x, p)
@@ -188,14 +188,22 @@ function guess = OdeInit2 (x, p)
 
     x = x(:).';
     decay = exp(-x);
+    % Aim for a solution with potential flow reversal and lower heat flux:
+    % guess = [
+    %     p.S - 0.5*(1 - decay);   % start f lower: for shrinking flows, f(0) might be < S
+    %     0.5 * decay;            % slower initial velocity (half of upper branch guess)
+    %     -0.5 * decay;           % correspondingly smaller f'' initial magnitude
+    %     1.0 * ones(size(decay));% assume θ ~1 (or higher) throughout initially
+    %     -0.1 * decay            % very small initial temperature gradient (low heat flux)
+    % ];
     guess = [
-        p.S + 0.2 + decay;
-        decay;
-        -decay;
-        decay;
-        decay
-        ];
+  p.S - 0.8*(1 - decay);
+  0.2 * decay;
+ -0.8 * decay;
+  1.2 * ones(size(decay));
+ -0.05 * decay];
 
+    
 
 
 function CfRe12 = localSkinFriction(sol, p, n)
