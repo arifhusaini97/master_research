@@ -50,7 +50,7 @@ values.n = n;
 values.deriveNFromM = @deriveNFromM;
 values.guesses = {
     @(x) firstBranchGuess(x);
-    @(x) secondBranchGuess(x);
+    @(x) secondBranchGuess(x,p);
     };
 values.domainMinList = [0, 0];
 values.domainMaxList = [10, 10];
@@ -61,35 +61,35 @@ values.sweep.mValues = [0.1,0.2,0.3];
 lambdaVals=linspace(-2,1, 50);
 
 
-lambdaVals1 = linspace(0.19827586,1, 5);
+% lambdaVals1 = linspace(0.19827586,1, 5);
 
-lambdaVals2 = linspace(0.04958789,0.19827586, 5);
-lambdaVals3 = linspace(0.03267573,0.04958789, 5);
-lambdaVals4 = linspace(0.02703834,0.03267573, 5);
-lambdaVals5 = linspace(0.01211382,0.02703834, 5);
+% lambdaVals2 = linspace(0.04958789,0.19827586, 5);
+% lambdaVals3 = linspace(0.03267573,0.04958789, 5);
+% lambdaVals4 = linspace(0.02703834,0.03267573, 5);
+% lambdaVals5 = linspace(0.01211382,0.02703834, 5);
 
-% lambdaVals5DeadLine = linspace(-0.00833887,0.01211382, 15);
-lambdaVals6 = linspace(-0.00905697,-0.00833887, 5);
-lambdaVals7 = linspace(-0.01121125,-0.00905697, 5);
-lambdaVals8 = linspace(-0.01395442,-0.01121125, 5);
-lambdaVals9 = linspace(-0.01669759,-0.01395442, 5);
-lambdaVals10 = linspace(-0.14916112,-0.01669759, 5);
+% % lambdaVals5DeadLine = linspace(-0.00833887,0.01211382, 15);
+% lambdaVals6 = linspace(-0.00905697,-0.00833887, 5);
+% lambdaVals7 = linspace(-0.01121125,-0.00905697, 5);
+% lambdaVals8 = linspace(-0.01395442,-0.01121125, 5);
+% lambdaVals9 = linspace(-0.01669759,-0.01395442, 5);
+% lambdaVals10 = linspace(-0.14916112,-0.01669759, 5);
 
-lambdaVals11 = linspace(-0.28162466,-0.14916112, 5);
+% lambdaVals11 = linspace(-0.28162466,-0.14916112, 5);
 
-lambdaVals12 = linspace(-0.54655172,-0.28162466, 5);
-lambdaVals13 = linspace(-0.73275862,-0.54655172, 5);
-lambdaVals14 = linspace(-0.86093735,-0.73275862, 5);
+% lambdaVals12 = linspace(-0.54655172,-0.28162466, 5);
+% lambdaVals13 = linspace(-0.73275862,-0.54655172, 5);
+% lambdaVals14 = linspace(-0.86093735,-0.73275862, 5);
 
-lambdaVals15 = linspace(-1.01206897,-0.86093735, 5);
-lambdaVals16 = linspace(-1.19827586,-1.01206897, 5);
-lambdaVals17 = linspace(-1.30723845,-1.19827586, 5);
+% lambdaVals15 = linspace(-1.01206897,-0.86093735, 5);
+% lambdaVals16 = linspace(-1.19827586,-1.01206897, 5);
+% lambdaVals17 = linspace(-1.30723845,-1.19827586, 5);
 
-lambdaVals18 = linspace(-1.57068966,-1.30723845, 5);
-lambdaVals19 = linspace(-1.75689655,-1.57068966, 5);
-lambdaVals20 = linspace(-1.82671604,-1.75689655, 5);
+% lambdaVals18 = linspace(-1.57068966,-1.30723845, 5);
+% lambdaVals19 = linspace(-1.75689655,-1.57068966, 5);
+% lambdaVals20 = linspace(-1.82671604,-1.75689655, 5);
 
-lambdaVals21 = linspace(-1.85,-1.82671604, 5);
+% lambdaVals21 = linspace(-1.85,-1.82671604, 5);
 
 % the critical point atleast converge to the roundoff 7 decimal places
 % need to verify critical point figure 4
@@ -185,7 +185,7 @@ guess =[0
 
 end
 
-function guess = secondBranchGuess(x)
+function guess = secondBranchGuess(x,p)
 % Softer branch-bias guess to avoid mesh blowup
 % (keeps theta' negative at eta=0 while reducing stiffness)
 guess =[p.S + 0.4*(1-exp(-x))                   % f
