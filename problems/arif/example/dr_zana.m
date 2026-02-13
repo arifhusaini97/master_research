@@ -16,21 +16,21 @@ stepsize2 = 51;
 % Hybrid Nanofluid Al-Cu with based fluid EG
 p = struct();
 p.Bi = 0.1; % Biot Number % Okello 0.1
-p.A = 0.2; % Unsteady parameter %Aziz 0.2
-p.M = 0.1; % Magnetic Field Parameter
-p.lambda = -1; % bouyancy parameter % Anuar -1
-p.Rd = 0.2; % Radiation Parameter % Aziz 0.2
-p.S = 1; % Suction/Injection Parameter
-p.Sl = 0.5; % Velocity Slip parameter
+p.A = 0; % Unsteady parameter %Aziz 0.2
+p.M = 0; % Magnetic Field Parameter
+p.lambda = 0; % bouyancy parameter % Anuar -1
+p.Rd = 0; % Radiation Parameter % Aziz 0.2
+p.S = 0; % Suction/Injection Parameter
+p.Sl = 0; % Velocity Slip parameter
 p.alpha = pi/4; % Inclination Angle
 
 p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
-p.omega = 0.4; % Material parameter, Dimensionless heat transfer factor % Hahim 0.4
-p.Pr = 204; % Prandtl Number, EG (water: 6.2, EG: 204)
+p.omega = 0; % Material parameter, Dimensionless heat transfer factor % Hahim 0.4
+p.Pr = 0.72; % Prandtl Number, EG (water: 6.2, EG: 204)
 
 m = struct();
-m.phi1 = 0.01; % Volume fraction for Alumina
-m.phi2 = 0.01; % Volume fraction for Copper
+m.phi1 = 0; % Volume fraction for Alumina
+m.phi2 = 0; % Volume fraction for Copper
 m.phiHnf = m.phi1 + m.phi2; % Hybrid volume fraction
 m.rhoS1 = 3970; % Density of Alumina
 m.rhoS2 = 8933; % Density of Copper
@@ -51,17 +51,15 @@ m.kF = 0.252; % Thermal Conductivity (EG: 0.252 (Aziz), Water: 0.613 (Aziz))
 
 n = struct();
 
-n.phiMu = 1 / ((1 - m.phiHnf)^2.5);
-n.phiRho = (1 - m.phiHnf) + ((m.phi1*m.rhoS1*m.CpS1 + m.phi2*m.rhoS2*m.CpS2)/(m.rhoF *m.CpF));
+n.phiMu = 1;
+n.phiRho = 1;
 n.rhoHnf=n.phiRho*m.rhoF;
 
-n.phiBeta = (1/n.rhoHnf)*(((m.phi1*m.rhoS1*m.betaS1 + m.phi2*m.rhoS2*m.betaS2)/m.betaF)+((1-m.phiHnf)*m.rhoF));
+n.phiBeta = 1;
 
-n.phiSigma = (((m.phi1*m.sigmaS1 + m.phi2*m.sigmaS2)/m.phiHnf) + 2*m.sigmaF + 2*(m.phi1*m.sigmaS1 + m.phi2*m.sigmaS2) - 2*m.phiHnf*m.sigmaF) ...
-    / (((m.phi1*m.sigmaS1 + m.phi2*m.sigmaS2)/m.phiHnf) + 2*m.sigmaF - (m.phi1*m.sigmaS1 + m.phi2*m.sigmaS2) + m.phiHnf*m.sigmaF);
-n.phiRhoCp = (1-m.phiHnf)+(((m.phi1*m.rhoS1*m.CpS1)+(m.phi2*m.rhoS2*m.CpS2))/(m.rhoF*m.CpF))
-n.phiK = (((m.phi1*m.kS1 + m.phi2*m.kS2)/m.phiHnf) + 2*m.kF + 2*(m.phi1*m.kS1 + m.phi2*m.kS2) - 2*m.phiHnf*m.kF) ...
-    / (((m.phi1*m.kS1 + m.phi2*m.kS2)/m.phiHnf) + 2*m.kF - (m.phi1*m.kS1 + m.phi2*m.kS2) + m.phiHnf*m.kF);
+n.phiSigma = 1;
+n.phiRhoCp = 1
+n.phiK = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%   first solution   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -166,8 +164,8 @@ function res = OdeBC (ya, yb)
 
     res = [ ya(1)-p.S
         ya(2)- 1-p.Sl*ya(3)
-        %ya(4)-1
-        ya(5)+p.Bi*(1-ya(4))
+        ya(4)-1
+        % ya(5)+p.Bi*(1-ya(4))
         yb(2)
         yb(4)];
 
