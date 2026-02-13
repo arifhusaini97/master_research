@@ -15,18 +15,18 @@ stepsize2 = 51;
 
 % Hybrid Nanofluid Al-Cu with based fluid EG
 p = struct();
-p.Bi = 0.1; % Biot Number %Okello 0.1
+p.Bi = 0.1; % Biot Number % Okello 0.1
 p.A = 0.2; % Unsteady parameter %Aziz 0.2
 p.M = 0.1; % Magnetic Field Parameter
-p.lambda = -1; % bouyancy parameter %Anuar -1
+p.lambda = -1; % bouyancy parameter % Anuar -1
 p.Rd = 0.2; % Radiation Parameter % Aziz 0.2
 p.S = 1; % Suction/Injection Parameter
 p.Sl = 0.5; % Velocity Slip parameter
 p.alpha = pi/4; % Inclination Angle
 
 p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
-p.omega = 0.4; % Material parameter, Dimensionless heat transfer factor %Hahim 0.4
-p.Pr = 204; % Prandtl Number, EG %drZana. 6.2 is for water
+p.omega = 0.4; % Material parameter, Dimensionless heat transfer factor % Hahim 0.4
+p.Pr = 204; % Prandtl Number, EG (water: 6.2, EG: 204)
 
 m = struct();
 m.phi1 = 0.01; % Volume fraction for Alumina
@@ -34,20 +34,20 @@ m.phi2 = 0.01; % Volume fraction for Copper
 m.phiHnf = m.phi1 + m.phi2; % Hybrid volume fraction
 m.rhoS1 = 3970; % Density of Alumina
 m.rhoS2 = 8933; % Density of Copper
-m.rhoF = 1114; % Density of EG
+m.rhoF = 1114; % Density of (EG: 1114 (aziz), Water: 997.1 (aziz))
 m.betaS1 = 0.85e-5; % Thermal Expension of Al
 m.betaS2 = 1.67e-5; % Thermal Expension of Cu
-m.betaF = 5.7e-4; % Density of EG
+m.betaF = 5.7e-4; % Thermal Expension of (EG: 5.7e-4 (Okello), Water: 21e-5(Wahid))
 m.sigmaS1 = 3.5e7; % Electrical conductivity of Al2O3
 % m.sigmaS1 = 1e-10; % Electrical conductivity of Al2O3 insulator
 m.sigmaS2 = 5.96e7;  % Electrical conductivity of Cu
-m.sigmaF = 5.5e-6;  % Electrical conductivity of EG
+m.sigmaF = 5.5e-6;  % Electrical conductivity of (EG: 5.5e-6 (Aziz), Water: 0.05 (Aziz))
 m.CpS1 = 765; % Heat capacity at constant pressure Al
 m.CpS2 = 385; % Heat capacity at constant pressure Cu
-m.CpF = 2415; % Heat capacity at constant pressure EG
+m.CpF = 2415; % Heat capacity at constant pressure (EG: 2415 (Aziz), Water: 4179 (Aziz))
 m.kS1 = 40; % Thermal Conductivity Al
 m.kS2 = 401; % Thermal Conductivity Cu
-m.kF = 0.252; % Thermal Conductivity EG
+m.kF = 0.252; % Thermal Conductivity (EG: 0.252 (Aziz), Water: 0.613 (Aziz))
 
 n = struct();
 
