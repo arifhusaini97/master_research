@@ -53,12 +53,13 @@ values.guesses = {
     @(x) secondBranchGuess(x,p);
     };
 values.domainMinList = [0, 0];
-values.domainMaxList = [10, 10];
+values.domainMaxList = [20, 20];
 
 values.sweep = struct();
 values.sweep.mValues = [0.1,0.2,0.3];
 % lambdaVals=linspace(-1.85,1, 100);
 lambdaVals=linspace(-2,1, 50);
+
 
 
 % lambdaVals1 = linspace(0.19827586,1, 5);

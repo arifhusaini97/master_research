@@ -1,4 +1,4 @@
-function CodeA
+function dr_zana
 
 format long g
 
@@ -7,10 +7,10 @@ global p m n
 
 %Boundary layer thickness & stepsize
 etaMin = 0;
-etaMax1 = 10;
-etaMax2 = 10;
-stepsize1 = 51;
-stepsize2 = 51;
+etaMax1 = 20;
+etaMax2 = 20;
+stepsize1 = 201;
+stepsize2 = 201;
 
 
 % Hybrid Nanofluid Al-Cu with based fluid EG
@@ -26,7 +26,7 @@ p.alpha = pi/4; % Inclination Angle
 
 p.delta = 0.2; % Material parameter, Thickness of Thermal boundary layer
 p.omega = 0; % Material parameter, Dimensionless heat transfer factor % Hahim 0.4
-p.Pr = 0.72; % Prandtl Number, EG (water: 6.2, EG: 204)
+p.Pr = 1; % Prandtl Number, EG (water: 6.2, EG: 204)
 
 m = struct();
 m.phi1 = 0; % Volume fraction for Alumina
@@ -63,7 +63,7 @@ n.phiK = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%   first solution   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-options =  bvpset('stats','off','RelTol',1e-6,'AbsTol',1e-8);
+options =  bvpset('stats','off','RelTol',1e-10,'AbsTol',1e-10);
 solinit = bvpinit (linspace (etaMin, etaMax1, stepsize1), @OdeInit1);
 sol = bvp5c (@OdeBVP, @OdeBC, solinit, options);
 eta = linspace (etaMin, etaMax1, stepsize1);
@@ -97,7 +97,7 @@ fprintf('\n');
 
 %%%%%%%%%%%%%%%%%%%%%%   second solution   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-options = bvpset('stats','off','RelTol',1e-6,'AbsTol',1e-8,'NMax',5000);
+options = bvpset('stats','off','RelTol',1e-10,'AbsTol',1e-10,'NMax',5000);
 solinit = bvpinit (linspace (etaMin, etaMax2, stepsize2), @OdeInit2);
 sol2 = bvp5c (@OdeBVP, @OdeBC, solinit, options);
 eta = linspace (etaMin, etaMax2, stepsize2);
@@ -134,20 +134,20 @@ fprintf('\n');
 %Define the ODE function
 function ff = OdeBVP (x, y)
     global p n
-    denom = (p.omega * (p.delta * y(3)^2 - 1)) - n.phiMu;
-    inertial = y(2)^2 - y(1)*y(3) + p.A*(y(2) + (x/2)*y(3));
-    electromagnetic = n.phiSigma * p.M * y(2);
-    rhsMomentum = -n.phiRho*( inertial-(n.phiBeta * p.lambda * y(4) * cos(p.alpha)));
+    denom = (p.omega * (p.delta * y(3)^2 - 1)) - n.phiMu;%-1
+    inertial = y(2)^2 - y(1)*y(3) + p.A*(y(2) + (x/2)*y(3)); %f'^2-ff''
+    electromagnetic = n.phiSigma * p.M * y(2); %0
+    rhsMomentum = -n.phiRho*( inertial-(n.phiBeta * p.lambda * y(4) * cos(p.alpha)));%-1(inertial)
 
-    thermalNumer = y(2)*y(4) - y(1)*y(5) + p.A*(2*y(4) + (x/2)*y(5));
-    thermalDenom = n.phiK + (4/3)*p.Rd;
+    thermalNumer = y(2)*y(4) - y(1)*y(5) + p.A*(2*y(4) + (x/2)*y(5));%y(2)*y(4) - y(1)*y(5)
+    thermalDenom = n.phiK + (4/3)*p.Rd;% 1
 
     ff = [
         y(2)
         y(3)
-        (rhsMomentum - electromagnetic) / denom
+        (rhsMomentum - electromagnetic) / denom % (-1(f'^2-ff'') - 0)/-1
         y(5)
-        p.Pr * n.phiRhoCp * (thermalNumer / thermalDenom)
+        p.Pr * n.phiRhoCp * (thermalNumer / thermalDenom)% p.Pr(f'*theta - f*theta')/1 %Das beta theta?
         ];
 
     %Define the boundary condition
@@ -174,9 +174,9 @@ function guess = OdeInit1 (x, p)
     global p
     guess =[0
         0
-        0
-        0
-        0];
+        0 
+        1
+        -exp(-x)];
 
     %Setting the initial guess for second solution
 function guess = OdeInit2 (x, p)
@@ -202,6 +202,3 @@ function NuRe12 = nusseltNumberFn(sol, p, n)
     y0  = deval(sol, 0);
     tp0 = y0(5);
     NuRe12 = -n.phiK*(1+ (4/3)*p.Rd)*tp0;
-
-
-

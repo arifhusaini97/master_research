@@ -218,6 +218,9 @@ elseif isfield(cfg,'range') && isfield(cfg,'step')
 else
     values = NaN;
 end
+if (isnumeric(values) || islogical(values)) && isvector(values) && ~isrow(values)
+    values = values(:).';
+end
 cfgOut = cfg;
 
 name = '';
