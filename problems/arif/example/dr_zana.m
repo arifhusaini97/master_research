@@ -63,7 +63,7 @@ n.phiK = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%   first solution   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-options =  bvpset('stats','off','RelTol',1e-10,'AbsTol',1e-10);
+options = bvpset('stats','off','RelTol',1e-10,'AbsTol',1e-10,'NMax',5000);
 solinit = bvpinit (linspace (etaMin, etaMax1, stepsize1), @OdeInit1);
 sol = bvp5c (@OdeBVP, @OdeBC, solinit, options);
 eta = linspace (etaMin, etaMax1, stepsize1);
